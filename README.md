@@ -1,23 +1,54 @@
-# AgentFoundry for OpenCode
+# AgentFoundry
 
-A project-local OpenCode team for professional backend, agentic, AI, data, delivery, and quality engineering. The package combines 18 specialized agents, 19 on-demand skills, shared operating rules, least-privilege permissions, typed handoffs, and ready-to-use commands.
+Agent systems, end to end: a **TypeScript reference architecture** for building reliable agentic applications, plus a **project-local OpenCode team** for professional agentic, backend, AI, and quality engineering work.
 
-## What is included
+## What's in this repository
 
 ```text
 .
-├── AGENTS.md                         Project-wide rules
+├── agent-systems/                    TypeScript reference architecture for agentic systems
+│   ├── SPEC.md                       Spec-driven development plan (outcomes, scope, risks)
+│   ├── src/core/                     Library: loops, tools, orchestration, handoffs, state,
+│   │                                 reliability, enforcement, cost, MCP
+│   ├── examples/                     15 runnable examples (topic → example map in its README)
+│   └── tests/                        106 tests, fully offline (mocked model)
+│
+├── AGENTS.md                         Project-wide rules for the OpenCode team
 ├── opencode.json                     Default agent, permissions, context, and safety
-└── .opencode/
-    ├── agents/                       18 Markdown agent definitions
-    ├── commands/                     Reusable slash commands
-    ├── instructions/                 Team operations and quality policy
-    └── skills/<name>/SKILL.md        19 on-demand domain workflows
+├── .opencode/
+│   ├── agents/                       18 Markdown agent definitions
+│   ├── commands/                     7 reusable slash commands
+│   ├── instructions/                 Team operations and quality policy
+│   └── skills/<name>/SKILL.md        19 on-demand domain workflows
+├── scripts/validate-opencode.rb      Validator for the OpenCode package
+└── LICENSE
 ```
 
-OpenCode discovers these files directly from the repository. No global installation or hard-coded model provider is required.
+The two parts are complementary: `agent-systems/` teaches and implements the patterns; `.opencode/` operationalizes them as an AI engineering team you run from this repo.
 
-## Agent team
+## Part 1 — Agent Systems Foundry (`agent-systems/`)
+
+A library + curriculum for building reliable agentic systems in TypeScript on Vercel AI SDK Core and Zod. Orchestration, loop control, and reliability are implemented explicitly — the machinery is the lesson.
+
+- **Core library** (`src/core/`): PRAO agent loops with hard budgets, tool contracts with authorization and postconditions, error taxonomy, bounded retry and fallback chains, goal decomposition over a typed task DAG, hub-and-spoke orchestration, pipelines, fan-out/fan-in, typed handoff envelopes, session checkpoints with crash-safe resume, enforcement layers for high-stakes paths, cost accounting, and MCP client wiring.
+- **Examples** (`examples/`): 15 runnable demos covering PRAO loops, decomposition, topologies, handoffs, memory, retries, enforcement, and MCP.
+- **Tests** (`tests/`): 106 tests, no network or API key required.
+
+```bash
+cd agent-systems
+npm install
+npm test                                   # offline, 106 tests
+npm run example -- examples/01-prao-loop.ts
+AGENT_SYSTEMS_MOCK=1 npm run example -- examples/09-hub-and-spoke.ts   # no key needed
+```
+
+Full documentation: [`agent-systems/README.md`](./agent-systems/README.md) · Spec: [`agent-systems/SPEC.md`](./agent-systems/SPEC.md)
+
+## Part 2 — OpenCode team (`.opencode/`)
+
+A project-local OpenCode team: 18 specialized agents, 19 on-demand skills, shared operating rules, least-privilege permissions, typed handoffs, and ready-to-use commands. OpenCode discovers these files directly from the repository — no global installation or hard-coded model provider required.
+
+### Agent team
 
 | Agent | Mode | Primary responsibility |
 |---|---|---|
@@ -42,7 +73,7 @@ OpenCode discovers these files directly from the repository. No global installat
 
 The orchestrator is the only agent allowed to invoke subagents. Specialists cannot create nested agent trees, which keeps authority, cost, and continuity under one owner.
 
-## Core skills
+### Core skills
 
 The workflow skills cover:
 
@@ -54,11 +85,9 @@ The workflow skills cover:
 - typed agent messages, handoffs, external state, checkpoints, and recovery;
 - deterministic validation and enforcement for high-stakes paths.
 
-Domain skills cover Node.js/TypeScript, code quality, architecture, GitHub Actions, MCP, MLOps, QA, AI research, LLMs, foundation models, RAG, graphs, and semantic NLP.
+Domain skills cover Node.js/TypeScript, code quality, architecture, GitHub Actions, MCP, MLOps, QA, AI research, LLMs, foundation models, RAG, graphs, and semantic NLP. Skills load on demand; each agent sees only the skills assigned to its role.
 
-Skills load on demand. Each agent can see only the skills assigned to its role.
-
-## Use
+### Use
 
 Start OpenCode from this repository:
 
@@ -92,7 +121,7 @@ ruby scripts/validate-opencode.rb
 opencode debug config
 ```
 
-## Safety model
+### Safety model
 
 The global policy allows repository reads and requires approval for edits, shell commands, web access, and unknown tools. Destructive Git and shell operations are denied. Access outside the worktree and environment-secret reads are denied.
 
@@ -100,13 +129,11 @@ Implementation specialists may edit project files within their bounded role. Rev
 
 Review `opencode.json` before using auto-approval. Auto mode does not broaden explicit denials, but it can approve actions otherwise configured as `ask`.
 
-## Models
+### Models
 
 No model IDs are pinned. The primary agent uses your configured OpenCode model; subagents inherit the invoking primary agent's model. Add a `model: provider/model-id` field to an agent only when you have evaluated that exact model for the role.
 
-This provider-neutral default avoids stale model names and works with OpenCode's supported providers.
-
-## Add MCP servers
+### Add MCP servers
 
 No live MCP server is enabled because no endpoint, command, authentication method, or trust policy was provided. Add only the servers the team needs; every enabled server increases context and attack surface.
 
@@ -134,7 +161,7 @@ Example remote server:
 
 Prefer OAuth for supported protected remote servers, use least-privilege scopes, and never commit credentials. MCP tools are prefixed with the configured server name, so target their permissions with `<server>_*`.
 
-## Customize safely
+### Customize safely
 
 - Change global approval behavior in `opencode.json`.
 - Add exact provider model IDs only after evaluation.
@@ -153,4 +180,9 @@ Prefer OAuth for supported protected remote servers, use least-privilege scopes,
 - [OpenCode commands](https://opencode.ai/docs/commands/)
 - [OpenCode MCP servers](https://opencode.ai/docs/mcp-servers/)
 - [Model Context Protocol specification](https://modelcontextprotocol.io/specification)
+- [Vercel AI SDK](https://ai-sdk.dev/docs)
 - [GitHub Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use)
+
+## License
+
+See [LICENSE](./LICENSE).
