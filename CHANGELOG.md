@@ -11,6 +11,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 - **Multi-turn chatbot example** (19): session continuity across turns with FileStore-backed history.
 - **Biome lint/format** with a dedicated CI job; CI status badge in the README.
 
+### Fixed
+
+- Public API now re-exports the `Tool` type so consumers never import from SDK internals (dogfood finding from the capstone).
+
 ## [0.1.0] - 2026-08-02
 
 Initial public state of the Agent Systems Foundry.
