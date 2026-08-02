@@ -50,6 +50,13 @@ Live runs persist data in `.capstone-data/` and traces in `traces/` (both gitign
 - A refund path where **three independent controls** must all pass: domain authorization (ticket must be refund-pending), the deterministic threshold check (refund ≤ requested), and human approval (refund > $100). The agent cannot talk its way past any of them — they are code.
 - Behavioral acceptance via the evals module: `triage-behavior-v1` scores whether the agent's triage decisions are appropriate, with judge reasons recorded.
 
+## Dogfood findings (and their resolution)
+
+- The `Tool` type was not exported from the public API — the capstone originally imported it from `ai` directly. **Fixed**: the public API now re-exports `Tool`, so consumers never touch SDK internals.
+- Declaring a tool-set interface sometimes needs explicit generics on `defineContractTool<I, O>` when a tool's inferred return type is a union (see `getTicket` in `src/tools.ts`) — documented pattern, acceptable for 0.x.
+
+Everything else composed without touching library internals: store, tools, loop, approval gate, tracer, evals — one workflow under one trace id.
+
 ## Test coverage
 
 `tests/capstone.test.ts` (offline, mock model): store seeding/idempotency/persistence, refund authorization refusal, over-request rejection, approval denial leaving the ticket refund-pending, approved refund + postcondition, full loop wiring.
