@@ -14,7 +14,9 @@
 
 import { tool, type Tool } from "ai";
 import { z } from "zod";
+import { classifyError } from "../errors/classify.js";
 import { PolicyError, ReasoningError, ToolError } from "../errors/taxonomy.js";
+import { newSpanId, newTraceId, nowIso, type Tracer } from "../trace/tracer.js";
 
 export type SideEffectKind = "read-only" | "mutating" | "destructive";
 
@@ -78,6 +80,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number, name: string): Promise<
 
 export interface ContractToolOptions {
   readonly context: ToolContext;
+  /** Optional trace sink; tool.call / tool.result / tool.error spans are emitted around execution. */
+  readonly tracer?: Tracer;
+  /** Correlate tool spans with an outer run; generated per call when omitted. */
+  readonly traceId?: string;
 }
 
 /**
@@ -92,6 +98,16 @@ export function defineContractTool<I, O>(
   const timeoutMs = contract.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   const guarded = async (rawInput: I): Promise<O> => {
+    const traceId = options.traceId ?? newTraceId();
+    const span = {
+      trace_id: traceId,
+      span_id: newSpanId(),
+      parent_span_id: null,
+      actor: context.agentId,
+    };
+    options.tracer?.emit({ ...span, timestamp: nowIso(), type: "tool.call", tool: contract.name, input: rawInput });
+    const started = Date.now();
+
     // 1. Schema validation at the trust boundary. The AI SDK validates model
     //    output against inputSchema already; validating again here also covers
     //    direct programmatic calls that bypass the model.
@@ -107,61 +123,77 @@ export function defineContractTool<I, O>(
     }
     const input = parsed.data;
 
-    // 2. Authorization, in code. A prompt cannot enforce this.
-    if (contract.sideEffect !== "read-only") {
-      const scope = contract.writeScope ?? contract.name;
-      if (!context.writeScopes.includes(scope)) {
-        throw new PolicyError(
-          `Agent "${context.agentId}" is not authorized for write scope "${scope}" required by tool "${contract.name}".`,
-          {
-            sideEffect: "none",
-            blastRadius: "local",
-            code: "policy.write_scope_denied",
-            evidence: [`agentScopes=[${context.writeScopes.join(", ")}]`, `requiredScope=${scope}`],
-          },
-        );
+    try {
+      // 2. Authorization, in code. A prompt cannot enforce this.
+      if (contract.sideEffect !== "read-only") {
+        const scope = contract.writeScope ?? contract.name;
+        if (!context.writeScopes.includes(scope)) {
+          throw new PolicyError(
+            `Agent "${context.agentId}" is not authorized for write scope "${scope}" required by tool "${contract.name}".`,
+            {
+              sideEffect: "none",
+              blastRadius: "local",
+              code: "policy.write_scope_denied",
+              evidence: [`agentScopes=[${context.writeScopes.join(", ")}]`, `requiredScope=${scope}`],
+            },
+          );
+        }
       }
-    }
-    if (contract.authorize !== undefined && !(await contract.authorize(input, context))) {
-      throw new PolicyError(`Authorization denied for tool "${contract.name}" by agent "${context.agentId}".`, {
-        sideEffect: "none",
-        blastRadius: "local",
-        code: "policy.domain_authorization_denied",
-      });
-    }
-
-    // 3. Execute with a hard timeout.
-    const output = await withTimeout(contract.execute(input, context), timeoutMs, contract.name);
-
-    // 4. Output schema validation: the tool must return what it promised.
-    if (contract.output !== undefined) {
-      const out = contract.output.safeParse(output);
-      if (!out.success) {
-        throw new ToolError(`Tool "${contract.name}" returned output violating its contract.`, {
-          retryable: false,
-          sideEffect: "unknown",
+      if (contract.authorize !== undefined && !(await contract.authorize(input, context))) {
+        throw new PolicyError(`Authorization denied for tool "${contract.name}" by agent "${context.agentId}".`, {
+          sideEffect: "none",
           blastRadius: "local",
-          code: "tool.output_invalid",
-          evidence: out.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+          code: "policy.domain_authorization_denied",
         });
       }
-    }
 
-    // 5. Postcondition: a successful transport response is not proof of effect.
-    if (contract.postcondition !== undefined) {
-      const verdict = contract.postcondition(input, output);
-      if (verdict !== true) {
-        throw new ReasoningError(`Tool "${contract.name}" postcondition failed: ${verdict}`, {
-          retryable: false,
-          sideEffect: "unknown",
-          blastRadius: "workflow",
-          code: "reasoning.postcondition_failed",
-          evidence: [verdict],
-        });
+      // 3. Execute with a hard timeout.
+      const output = await withTimeout(contract.execute(input, context), timeoutMs, contract.name);
+
+      // 4. Output schema validation: the tool must return what it promised.
+      if (contract.output !== undefined) {
+        const out = contract.output.safeParse(output);
+        if (!out.success) {
+          throw new ToolError(`Tool "${contract.name}" returned output violating its contract.`, {
+            retryable: false,
+            sideEffect: "unknown",
+            blastRadius: "local",
+            code: "tool.output_invalid",
+            evidence: out.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+          });
+        }
       }
-    }
 
-    return output;
+      // 5. Postcondition: a successful transport response is not proof of effect.
+      if (contract.postcondition !== undefined) {
+        const verdict = contract.postcondition(input, output);
+        if (verdict !== true) {
+          throw new ReasoningError(`Tool "${contract.name}" postcondition failed: ${verdict}`, {
+            retryable: false,
+            sideEffect: "unknown",
+            blastRadius: "workflow",
+            code: "reasoning.postcondition_failed",
+            evidence: [verdict],
+          });
+        }
+      }
+
+      options.tracer?.emit({ ...span, timestamp: nowIso(), type: "tool.result", tool: contract.name, durationMs: Date.now() - started });
+      return output;
+    } catch (raw) {
+      const error = classifyError(raw);
+      options.tracer?.emit({
+        ...span,
+        timestamp: nowIso(),
+        type: "tool.error",
+        tool: contract.name,
+        code: error.code,
+        category: error.category,
+        retryable: error.retryable,
+        durationMs: Date.now() - started,
+      });
+      throw error;
+    }
   };
 
   // Type erasure at the SDK boundary: the AI SDK's Tool type uses conditional
