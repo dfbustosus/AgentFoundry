@@ -115,3 +115,7 @@ export { CostTracker, estimateCostUsd, multiAgentFit, PRICE_STALENESS_DAYS, PRIC
 
 // mcp
 export { connectMcpServer, type ConnectOptions, type McpServerHandle } from "./core/mcp/client.js";
+
+// trace
+export { ConsoleTracer, JsonlTracer, newSpanId, newTraceId, NoopTracer, nowIso, type Tracer } from "./core/trace/tracer.js";
+export { parseTraceEvent, traceEventSchema, type TraceEvent } from "./core/trace/events.js";
