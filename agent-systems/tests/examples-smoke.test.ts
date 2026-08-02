@@ -28,9 +28,9 @@ const examples = readdirSync(EXAMPLES_DIR)
 
 describe("example smoke tests (offline, mocked model)", () => {
   it("discovers the expected example set", () => {
-    expect(examples.length).toBe(14);
+    expect(examples.length).toBe(15);
     expect(examples).toContain("01-prao-loop.ts");
-    expect(examples).toContain("15-topology-selection.ts");
+    expect(examples).toContain("16-tracing.ts");
   });
 
   for (const file of examples) {
