@@ -1,5 +1,7 @@
 # AgentFoundry
 
+[![CI](https://github.com/dfbustosus/AgentFoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/dfbustosus/AgentFoundry/actions/workflows/ci.yml)
+
 A reference architecture for building **reliable agentic systems in TypeScript** — a small typed library plus a runnable curriculum of examples, built on Vercel AI SDK Core and Zod.
 
 Orchestration, loop control, and reliability are implemented explicitly in this repo rather than delegated to a heavy framework: the machinery is the lesson.
