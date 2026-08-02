@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Added
+
+- **Capstone dogfood app** (`agent-systems/capstone/`): support-ticket triage agent built entirely on the public library API — contract tools with refund authorization and postconditions, PRAO triage loop, human approval gate on refunds > $100, JSONL tracing, and a behavioral eval suite (`npm run capstone`, `npm run capstone:eval`, both offline-capable).
+- **Multi-turn chatbot example** (19): session continuity across turns with FileStore-backed history.
+- **Biome lint/format** with a dedicated CI job; CI status badge in the README.
+
 ## [0.1.0] - 2026-08-02
 
 Initial public state of the Agent Systems Foundry.
