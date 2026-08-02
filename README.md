@@ -14,8 +14,9 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 │   ├── SPEC.md                       Spec-driven development plan (outcomes, scope, risks)
 │   ├── src/core/                     Library: loops, tools, orchestration, handoffs, state,
 │   │                                 reliability, enforcement, cost, MCP
-│   ├── examples/                     18 runnable examples (topic → example map in its README)
-│   └── tests/                        138 tests, fully offline (mocked model)
+│   ├── examples/                     19 runnable examples (topic → example map in its README)
+│   ├── capstone/                     Dogfood app: support-ticket triage agent on the public API
+│   └── tests/                        148 tests, fully offline (mocked model)
 ├── scripts/validate-opencode.rb      Validator for the local dev tooling (gitignored config)
 └── LICENSE
 ```
@@ -41,7 +42,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ```bash
 cd agent-systems
 npm install
-npm test                                   # 138 tests, no network or API key
+npm test                                   # 148 tests, no network or API key
 npm run example -- examples/01-prao-loop.ts
 ```
 

@@ -78,7 +78,7 @@ Every topic this project set out to cover, and where it lives:
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 138 tests, fully offline (mocked model)
+npm test                  # 148 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -100,7 +100,7 @@ Examples `10`, `11`, and `15` need no API key — start there if you just want t
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **138/138 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **148/148 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).
 
