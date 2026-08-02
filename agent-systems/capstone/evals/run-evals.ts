@@ -9,6 +9,7 @@
  */
 
 import { contains, defineDataset, llmJudge, runEval, type EvalDataset } from "../../src/index.js";
+import { isMockMode, loadEnv } from "../../src/config/env.js";
 import { model, printJson } from "../../examples/lib/shared.js";
 
 export const TRIAGE_DATASET: EvalDataset = defineDataset({
@@ -66,7 +67,7 @@ async function main(): Promise<void> {
     })),
   });
 
-  if (process.env.AGENT_SYSTEMS_MOCK === "1") {
+  if (isMockMode(loadEnv())) {
     console.log("(mock mode: deterministic scorers fail against the canned answer by design — see example 18.)");
   }
 }

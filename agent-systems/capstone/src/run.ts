@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { ApprovalGate, JsonlTracer, type ApprovalHandler } from "../../src/index.js";
+import { isMockMode, loadEnv } from "../../src/config/env.js";
 import { model, printSection } from "../../examples/lib/shared.js";
 import { runTriage } from "./agent.js";
 import { defaultDataDir, TicketStore } from "./store.js";
@@ -48,7 +49,7 @@ const scriptedApprover: ApprovalHandler = async (request) => {
 async function main(): Promise<void> {
   printSection("Capstone — support-ticket triage agent");
 
-  const isMock = process.env.AGENT_SYSTEMS_MOCK === "1";
+  const isMock = isMockMode(loadEnv());
   const dataDir = isMock ? await mkdtemp(join(tmpdir(), "capstone-")) : defaultDataDir();
   const traceDir = isMock ? dataDir : join(process.cwd(), "traces");
 
