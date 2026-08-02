@@ -109,6 +109,16 @@ export {
   type EnforcementDecision,
   type EnforcementLayer,
 } from "./core/validation/enforcement.js";
+export {
+  ApprovalGate,
+  approvalLayer,
+  autoDenyHandler,
+  type ApprovalDecision,
+  type ApprovalGateOptions,
+  type ApprovalHandler,
+  type ApprovalPolicy,
+  type ApprovalRequest,
+} from "./core/validation/approval.js";
 
 // cost
 export { CostTracker, estimateCostUsd, multiAgentFit, PRICE_STALENESS_DAYS, PRICE_TABLE, stalePriceModels, type CostReport, type ModelPrice } from "./core/cost/tracker.js";
