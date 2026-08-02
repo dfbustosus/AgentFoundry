@@ -48,6 +48,7 @@ export {
   contractSummary,
   defineContractTool,
   type SideEffectKind,
+  type Tool,
   type ToolContext,
   type ToolContract,
 } from "./core/tools/contract.js";
