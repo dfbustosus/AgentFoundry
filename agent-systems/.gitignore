@@ -3,3 +3,5 @@ dist/
 .env
 *.log
 .checkpoints/
+.capstone-data/
+traces/

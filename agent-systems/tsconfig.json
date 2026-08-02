@@ -16,5 +16,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "examples/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "examples/**/*.ts", "capstone/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
 }

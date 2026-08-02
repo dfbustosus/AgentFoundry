@@ -12,7 +12,9 @@
     "lint": "biome check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "tsx"
+    "example": "tsx",
+    "capstone": "tsx capstone/src/run.ts",
+    "capstone:eval": "tsx capstone/evals/run-evals.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "2.0.20",
