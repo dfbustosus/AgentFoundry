@@ -94,6 +94,21 @@ export const traceEventSchema = z.discriminatedUnion("type", [
     inputTokens: z.number().nonnegative(),
     outputTokens: z.number().nonnegative(),
   }),
+  z.object({
+    ...spanBase,
+    type: z.literal("approval.requested"),
+    actionKind: z.string(),
+    reason: z.string(),
+    expiresAt: z.iso.datetime(),
+  }),
+  z.object({
+    ...spanBase,
+    type: z.literal("approval.decided"),
+    actionKind: z.string(),
+    approved: z.boolean(),
+    approver: z.string(),
+    latencyMs: z.number().nonnegative(),
+  }),
 ]);
 
 export type TraceEvent = z.infer<typeof traceEventSchema>;
