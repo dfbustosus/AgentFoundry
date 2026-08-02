@@ -3,7 +3,13 @@
 All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project is pre-1.0 and uses semantic versioning once published.
 
+[Unreleased]: https://github.com/dfbustosus/AgentFoundry/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/dfbustosus/AgentFoundry/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/dfbustosus/AgentFoundry/releases/tag/v0.1.0
+
 ## [Unreleased]
+
+## [0.2.0] - 2026-08-02
 
 ### Added
 
