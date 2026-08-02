@@ -66,6 +66,7 @@ Every topic this project set out to cover, and where it lives:
 | Fallback chains & graceful degradation | `12` | `core/reliability/fallback.ts` |
 | Why prompts are not sufficient (high-stakes paths) | `13` | `core/validation/enforcement.ts` |
 | Validation & enforcement layers | `13` | `core/validation/enforcement.ts` |
+| Human-in-the-loop approval gates | `17` | `core/validation/approval.ts` |
 | Tools | `02`, `14` | `core/tools/contract.ts` |
 | MCPs | `14` | `core/mcp/client.ts` |
 | Observability & audit trails | `16` | `core/trace/` |
@@ -75,7 +76,7 @@ Every topic this project set out to cover, and where it lives:
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 115 tests, fully offline (mocked model)
+npm test                  # 127 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -97,7 +98,7 @@ Examples `10`, `11`, and `15` need no API key — start there if you just want t
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **115/115 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **127/127 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).
 
