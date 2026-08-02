@@ -18,6 +18,12 @@ import { classifyError } from "../errors/classify.js";
 import { PolicyError, ReasoningError, ToolError } from "../errors/taxonomy.js";
 import { newSpanId, newTraceId, nowIso, type Tracer } from "../trace/tracer.js";
 
+/**
+ * Re-exported so consumers never need to import from the SDK directly —
+ * the public API should be self-sufficient (dogfood finding, capstone).
+ */
+export type { Tool } from "ai";
+
 export type SideEffectKind = "read-only" | "mutating" | "destructive";
 
 export interface ToolContext {
