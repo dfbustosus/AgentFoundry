@@ -129,3 +129,8 @@ export { connectMcpServer, type ConnectOptions, type McpServerHandle } from "./c
 // trace
 export { ConsoleTracer, JsonlTracer, newSpanId, newTraceId, NoopTracer, nowIso, type Tracer } from "./core/trace/tracer.js";
 export { parseTraceEvent, traceEventSchema, type TraceEvent } from "./core/trace/events.js";
+
+// evals
+export { defineDataset, evalCaseSchema, evalDatasetSchema, parseDataset, type EvalCase, type EvalDataset } from "./core/evals/dataset.js";
+export { contains, exactMatch, jsonSchemaOutput, llmJudge, matchesPattern, type ScoreResult, type Scorer } from "./core/evals/scorers.js";
+export { runEval, type EvalCaseResult, type EvalReport, type RunEvalOptions } from "./core/evals/runner.js";
