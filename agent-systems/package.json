@@ -9,6 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "example": "tsx"
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@ai-sdk/provider": "4.0.4",
+    "@biomejs/biome": "^2.5.6",
     "@types/node": "24.13.3",
     "tsx": "4.23.1",
     "typescript": "5.9.3",

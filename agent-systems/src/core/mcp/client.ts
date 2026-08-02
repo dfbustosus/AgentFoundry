@@ -12,7 +12,7 @@
  *    not by hoping the model resists injection).
  */
 
-import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
+import { createMCPClient, type MCPClient, type MCPClientConfig } from "@ai-sdk/mcp";
 import type { ToolSet } from "ai";
 
 export interface McpServerHandle {
@@ -28,7 +28,11 @@ export interface McpServerHandle {
 
 export interface ConnectOptions {
   /** Stdio transport: command + args, e.g. { command: "npx", args: ["-y", "@modelcontextprotocol/server-everything"] }. */
-  readonly stdio?: { readonly command: string; readonly args?: readonly string[]; readonly env?: Record<string, string> };
+  readonly stdio?: {
+    readonly command: string;
+    readonly args?: readonly string[];
+    readonly env?: Record<string, string>;
+  };
   /** HTTP transport: base URL of a remote MCP server. */
   readonly url?: string;
   readonly headers?: Record<string, string>;
@@ -47,7 +51,7 @@ export async function connectMcpServer(options: ConnectOptions): Promise<McpServ
     throw new Error("connectMcpServer requires either a stdio command or a url.");
   }
 
-  let transport;
+  let transport: MCPClientConfig["transport"];
   if (options.stdio !== undefined) {
     // Lazy import: stdio transport spawns a child process and must not load in
     // browser-like or test environments that only use HTTP servers.
@@ -58,7 +62,11 @@ export async function connectMcpServer(options: ConnectOptions): Promise<McpServ
       ...(options.stdio.env !== undefined ? { env: options.stdio.env } : {}),
     });
   } else {
-    transport = { type: "http" as const, url: options.url as string, ...(options.headers !== undefined ? { headers: options.headers } : {}) };
+    transport = {
+      type: "http" as const,
+      url: options.url as string,
+      ...(options.headers !== undefined ? { headers: options.headers } : {}),
+    };
   }
 
   const client = await createMCPClient({
@@ -75,9 +83,7 @@ export async function connectMcpServer(options: ConnectOptions): Promise<McpServ
       ? advertised
       : advertised.filter((name) => options.allowedTools?.includes(name) ?? false);
 
-  const tools: ToolSet = Object.fromEntries(
-    Object.entries(allTools).filter(([name]) => exposed.includes(name)),
-  );
+  const tools: ToolSet = Object.fromEntries(Object.entries(allTools).filter(([name]) => exposed.includes(name)));
 
   return {
     client,
