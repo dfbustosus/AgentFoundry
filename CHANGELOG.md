@@ -9,6 +9,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Fixed
+
+- `.env` files are now actually loaded: `loadDotEnv()` searches the project dir then the repo root, never overrides shell variables, and `loadEnv()` hydrates from it before validation. Previously, running examples with only a `.env` file failed validation despite a correct key. Verified with a live end-to-end run of example 01 against the real provider.
+
 ## [0.2.0] - 2026-08-02
 
 ### Added
