@@ -11,16 +11,11 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import type { LanguageModelV4CallOptions, LanguageModelV4GenerateResult } from "@ai-sdk/provider";
+import { isMockMode, loadEnv } from "../../src/config/env.js";
 
 export function requireApiKey(): void {
-  if (process.env.OPENAI_API_KEY === undefined || process.env.OPENAI_API_KEY === "") {
-    console.error(
-      "This example needs a live model. Set OPENAI_API_KEY (see .env.example), " +
-        "or run offline with AGENT_SYSTEMS_MOCK=1.\n" +
-        "The test suite (npm test) runs fully offline with a mocked model.",
-    );
-    process.exit(1);
-  }
+  // Validated centrally; throws EnvConfigError with an actionable message.
+  loadEnv();
 }
 
 /** Minimal JSON-Schema instantiator: produces a structurally valid value for object generation. */
@@ -79,12 +74,12 @@ function mockResult(options: LanguageModelV4CallOptions): LanguageModelV4Generat
 }
 
 export function model(): LanguageModel {
-  if (process.env.AGENT_SYSTEMS_MOCK === "1") {
+  const env = loadEnv();
+  if (isMockMode(env)) {
     return new MockLanguageModelV4({ doGenerate: async (options) => mockResult(options) });
   }
-  requireApiKey();
-  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return openai(process.env.AGENT_SYSTEMS_MODEL ?? "gpt-4o-mini");
+  const openai = createOpenAI({ apiKey: env.OPENAI_API_KEY });
+  return openai(env.AGENT_SYSTEMS_MODEL);
 }
 
 export function printSection(title: string): void {

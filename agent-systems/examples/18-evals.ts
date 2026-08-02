@@ -16,6 +16,7 @@
 
 import { z } from "zod";
 import { contains, defineContractTool, defineDataset, llmJudge, runEval, runPraoLoop } from "../src/index.js";
+import { isMockMode, loadEnv } from "../src/config/env.js";
 import { main, model, printJson, printSection } from "./lib/shared.js";
 
 await main(async () => {
@@ -74,7 +75,7 @@ await main(async () => {
     ],
   });
 
-  if (process.env.AGENT_SYSTEMS_MOCK === "1") {
+  if (isMockMode(loadEnv())) {
     console.log(
       "\n(mock mode: the canned mock answer deliberately FAILS the deterministic `contains`\n" +
         "scorer — which is the point: deterministic scorers cannot be sweet-talked. With a\n" +
