@@ -14,6 +14,8 @@
  * a misconfigured environment fails at startup, not mid-agent-loop.
  */
 
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -39,8 +41,44 @@ export class EnvConfigError extends Error {
   }
 }
 
+/**
+ * Minimal .env loader: first existing file wins, searched upward from `startDir`
+ * (project dir, then repo root). Already-set shell variables always win.
+ * Supports KEY=value, # comments, blank lines, and optional single/double
+ * quotes. No variable expansion — values are literal by design.
+ */
+export function loadDotEnv(
+  target: Record<string, string | undefined> = process.env,
+  startDir: string = process.cwd(),
+): readonly string[] {
+  const candidates = [join(startDir, ".env"), join(startDir, "..", ".env")];
+  const loaded: string[] = [];
+  for (const path of candidates) {
+    if (!existsSync(path)) continue;
+    const lines = readFileSync(path, "utf8").split("\n");
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line.length === 0 || line.startsWith("#")) continue;
+      const eq = line.indexOf("=");
+      if (eq <= 0) continue;
+      const key = line.slice(0, eq).trim();
+      let value = line.slice(eq + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      if (target[key] === undefined) {
+        target[key] = value;
+        loaded.push(key);
+      }
+    }
+    break; // first .env file found wins; do not merge multiple files
+  }
+  return loaded;
+}
+
 /** Load and validate the environment. Pass an explicit source in tests. */
 export function loadEnv(source: Record<string, string | undefined> = process.env): AppEnv {
+  if (source === process.env) loadDotEnv(source);
   const parsed = envSchema.safeParse(source);
   if (!parsed.success) {
     throw new EnvConfigError(parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`));
