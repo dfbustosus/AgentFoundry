@@ -85,7 +85,7 @@ Runtime configuration is **typed and validated at load** (`agent-systems/src/con
 | `AGENT_SYSTEMS_MODEL` | e.g. `gpt-4o-mini` (default) | Model for examples and capstone |
 | `AGENT_SYSTEMS_MOCK` | `0` (default) · `1` | Offline deterministic mock; **forbidden in production** |
 
-Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-systems/.env` for local development. Deployment environments (GitHub Environments with protection rules) become relevant only when a release/deploy workflow exists — the config layer already enforces the development/test/production distinction in code.
+Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-systems/.env` (or the repository root `.env`) for local development — the file is loaded automatically; shell variables always take precedence. Deployment environments (GitHub Environments with protection rules) become relevant only when a release/deploy workflow exists — the config layer already enforces the development/test/production distinction in code.
 
 ## Documentation
 
