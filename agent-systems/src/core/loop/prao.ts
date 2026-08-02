@@ -16,6 +16,7 @@
 import { generateText, stepCountIs, type LanguageModel, type LanguageModelUsage, type ModelMessage, type ToolSet } from "ai";
 import { classifyError } from "../errors/classify.js";
 import { BudgetExhaustedError, type AgentError } from "../errors/taxonomy.js";
+import { newSpanId, newTraceId, nowIso, type Tracer } from "../trace/tracer.js";
 
 export type LoopTransition =
   | "stop-success" // acceptance criteria have evidence
@@ -94,6 +95,15 @@ export interface PraoLoopOptions<TOOLS extends ToolSet> {
    */
   readonly decide?: (observation: Observation, state: LoopState) => TransitionDecision | undefined;
   readonly onObservation?: (observation: Observation, state: LoopState) => void;
+  /**
+   * Optional trace sink. When present, every iteration and the final
+   * transition are emitted as typed spans correlated by `traceId`.
+   */
+  readonly tracer?: Tracer;
+  /** Correlate this run with an outer workflow; generated when omitted. */
+  readonly traceId?: string;
+  /** Actor label stamped on spans. Defaults to "prao-loop". */
+  readonly actor?: string;
 }
 
 export interface LoopResult {
@@ -101,6 +111,8 @@ export interface LoopResult {
   readonly reason: string;
   readonly request?: string;
   readonly text: string;
+  /** Correlates every span this run emitted; pass it to nested runs. */
+  readonly traceId: string;
   readonly messages: readonly ModelMessage[];
   readonly observations: readonly Observation[];
   readonly iterations: number;
@@ -121,9 +133,21 @@ function addUsage(acc: { input: number; output: number }, usage: LanguageModelUs
 }
 
 export async function runPraoLoop<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): Promise<LoopResult> {
+  const result = await execute(options);
+  // Durability of spans is explicit: tracing must never change loop behavior,
+  // but a caller that awaited the loop gets a durable trace.
+  await options.tracer?.flush?.();
+  return result;
+}
+
+async function execute<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): Promise<LoopResult> {
   const budgets: LoopBudgets = { ...DEFAULT_BUDGETS, ...options.budgets };
   const stepsPerIteration = options.stepsPerIteration ?? 4;
   const startedAt = Date.now();
+  const tracer = options.tracer;
+  const traceId = options.traceId ?? newTraceId();
+  const rootSpanId = newSpanId();
+  const actor = options.actor ?? "prao-loop";
 
   const messages: ModelMessage[] = [...(options.initialMessages ?? []), { role: "user", content: options.goal }];
   const observations: Observation[] = [];
@@ -146,18 +170,33 @@ export async function runPraoLoop<TOOLS extends ToolSet>(options: PraoLoopOption
   const finish = (
     decision: TransitionDecision,
     extras: { text?: string; error?: AgentError },
-  ): LoopResult => ({
-    transition: decision.transition,
-    reason: decision.reason,
-    ...(decision.request !== undefined ? { request: decision.request } : {}),
-    text: extras.text ?? "",
-    messages,
-    observations,
-    iterations: observations.length,
-    toolCallCount,
-    usage: { inputTokens: usageTotals.input, outputTokens: usageTotals.output },
-    ...(extras.error !== undefined ? { error: extras.error } : {}),
-  });
+  ): LoopResult => {
+    tracer?.emit({
+      trace_id: traceId,
+      span_id: rootSpanId,
+      parent_span_id: null,
+      timestamp: nowIso(),
+      actor,
+      type: "loop.transition",
+      transition: decision.transition,
+      reason: decision.reason,
+      iterations: observations.length,
+      toolCallCount,
+    });
+    return {
+      transition: decision.transition,
+      reason: decision.reason,
+      ...(decision.request !== undefined ? { request: decision.request } : {}),
+      text: extras.text ?? "",
+      traceId,
+      messages,
+      observations,
+      iterations: observations.length,
+      toolCallCount,
+      usage: { inputTokens: usageTotals.input, outputTokens: usageTotals.output },
+      ...(extras.error !== undefined ? { error: extras.error } : {}),
+    };
+  };
 
   for (let iteration = 1; iteration <= budgets.maxIterations; iteration++) {
     // ---- Perceive ------------------------------------------------------
@@ -222,6 +261,18 @@ export async function runPraoLoop<TOOLS extends ToolSet>(options: PraoLoopOption
 
     // ---- Observe ---------------------------------------------------------
     observations.push(observation);
+    tracer?.emit({
+      trace_id: traceId,
+      span_id: newSpanId(),
+      parent_span_id: rootSpanId,
+      timestamp: nowIso(),
+      actor,
+      type: "loop.iteration",
+      iteration: observation.iteration,
+      kind: observation.kind,
+      toolCalls: [...observation.toolCalls],
+      finishReason: observation.finishReason,
+    });
 
     // Stall detection: identical assistant output repeated means the loop is
     // cycling, not progressing. This is a reasoning signal, not a budget.
