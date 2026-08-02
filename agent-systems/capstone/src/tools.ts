@@ -8,8 +8,7 @@
  */
 
 import { z } from "zod";
-import type { Tool } from "ai";
-import { defineContractTool, type ActionProposal, type Tracer } from "../../src/index.js";
+import { defineContractTool, type ActionProposal, type Tool, type Tracer } from "../../src/index.js";
 import type { TicketStore } from "./store.js";
 
 const AGENT_CONTEXT = { agentId: "triage-agent", writeScopes: ["tickets", "refunds"] } as const;
