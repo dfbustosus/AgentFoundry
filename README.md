@@ -12,8 +12,8 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 │   ├── SPEC.md                       Spec-driven development plan (outcomes, scope, risks)
 │   ├── src/core/                     Library: loops, tools, orchestration, handoffs, state,
 │   │                                 reliability, enforcement, cost, MCP
-│   ├── examples/                     16 runnable examples (topic → example map in its README)
-│   └── tests/                        115 tests, fully offline (mocked model)
+│   ├── examples/                     17 runnable examples (topic → example map in its README)
+│   └── tests/                        127 tests, fully offline (mocked model)
 ├── scripts/validate-opencode.rb      Validator for the local dev tooling (gitignored config)
 └── LICENSE
 ```
@@ -28,7 +28,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 - **Decomposition** — complex goals into a validated task DAG; sequential, parallel (fan-out/fan-in), and hierarchical patterns with bounded concurrency.
 - **Orchestration** — hub-and-spoke orchestrator with verified delegation, schema-validated pipelines, deterministic fan-in conflict resolution, and a topology-selection decision rule.
 - **Handoffs & state** — typed agent-to-agent envelopes (Zod) with audit chains, dedup, and expiry; session checkpoints with reconcile-on-resume so completed side effects are never replayed.
-- **Enforcement layers** — schema → authorization → budget → postcondition, in deterministic code. Prompts guide; code decides.
+- **Enforcement layers** — schema → authorization → budget → human approval → postcondition, in deterministic code. High-stakes actions stop and wait for a real human decision, failing closed when none arrives. Prompts guide; code decides.
 - **Cost accounting** — per-agent token/USD tracking with price-staleness flags and a multi-agent cost-vs-fit check.
 - **Tracing** — typed span events (loop iterations, transitions, tool calls, handoffs, delegations, cost) to JSONL or console sinks, correlated by trace id. The audit trail is data, not console scroll.
 - **MCP** — client wiring with least-privilege tool allowlists.
@@ -38,7 +38,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ```bash
 cd agent-systems
 npm install
-npm test                                   # 115 tests, no network or API key
+npm test                                   # 127 tests, no network or API key
 npm run example -- examples/01-prao-loop.ts
 ```
 
