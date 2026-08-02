@@ -185,6 +185,9 @@ export {
 // mcp
 export { connectMcpServer, type ConnectOptions, type McpServerHandle } from "./core/mcp/client.js";
 
+// config (application layer — core library above is env-free)
+export { EnvConfigError, isMockMode, loadEnv, type AppEnv } from "./config/env.js";
+
 // trace
 export {
   ConsoleTracer,
