@@ -6,7 +6,10 @@
 import { MockLanguageModelV4 } from "ai/test";
 import type { LanguageModelV4GenerateResult } from "@ai-sdk/provider";
 
-export function textResult(text: string, finish: "stop" | "tool-calls" | "length" = "stop"): LanguageModelV4GenerateResult {
+export function textResult(
+  text: string,
+  finish: "stop" | "tool-calls" | "length" = "stop",
+): LanguageModelV4GenerateResult {
   return {
     content: [{ type: "text", text }],
     finishReason: { unified: finish, raw: finish },

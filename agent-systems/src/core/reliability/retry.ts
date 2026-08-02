@@ -11,7 +11,7 @@
  */
 
 import { classifyError } from "../errors/classify.js";
-import { AgentError, EnvironmentError } from "../errors/taxonomy.js";
+import { type AgentError, EnvironmentError } from "../errors/taxonomy.js";
 
 export interface RetryPolicy {
   /** Maximum total attempts, including the first. Must be >= 1. */

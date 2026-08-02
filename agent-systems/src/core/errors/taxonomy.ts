@@ -105,17 +105,14 @@ export class DegradedError extends AgentError {
   readonly failures: readonly { step: string; error: AgentError }[];
 
   constructor(droppedGuarantees: readonly string[], failures: readonly { step: string; error: AgentError }[]) {
-    super(
-      `All fallback steps exhausted. Dropped guarantees: ${droppedGuarantees.join(", ") || "none recorded"}.`,
-      {
-        category: "environment",
-        retryable: false,
-        sideEffect: "unknown",
-        blastRadius: "workflow",
-        code: "fallback.exhausted",
-        evidence: failures.map((f) => `${f.step}: ${f.error.code} — ${f.error.message}`),
-      },
-    );
+    super(`All fallback steps exhausted. Dropped guarantees: ${droppedGuarantees.join(", ") || "none recorded"}.`, {
+      category: "environment",
+      retryable: false,
+      sideEffect: "unknown",
+      blastRadius: "workflow",
+      code: "fallback.exhausted",
+      evidence: failures.map((f) => `${f.step}: ${f.error.code} — ${f.error.message}`),
+    });
     this.name = "DegradedError";
     this.droppedGuarantees = droppedGuarantees;
     this.failures = failures;

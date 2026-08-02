@@ -15,10 +15,7 @@
  */
 
 import { ReasoningError } from "../errors/taxonomy.js";
-import {
-  validateEnvelope,
-  type HandoffEnvelope,
-} from "./envelope.js";
+import { validateEnvelope, type HandoffEnvelope } from "./envelope.js";
 
 export type Ack =
   | { readonly accepted: true; readonly envelope: HandoffEnvelope }

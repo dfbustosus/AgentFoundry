@@ -13,7 +13,14 @@
  * policy then decides what happens next.
  */
 
-import { generateText, stepCountIs, type LanguageModel, type LanguageModelUsage, type ModelMessage, type ToolSet } from "ai";
+import {
+  generateText,
+  stepCountIs,
+  type LanguageModel,
+  type LanguageModelUsage,
+  type ModelMessage,
+  type ToolSet,
+} from "ai";
 import { classifyError } from "../errors/classify.js";
 import { BudgetExhaustedError, type AgentError } from "../errors/taxonomy.js";
 import { newSpanId, newTraceId, nowIso, type Tracer } from "../trace/tracer.js";
@@ -167,10 +174,7 @@ async function execute<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): 
     observations,
   });
 
-  const finish = (
-    decision: TransitionDecision,
-    extras: { text?: string; error?: AgentError },
-  ): LoopResult => {
+  const finish = (decision: TransitionDecision, extras: { text?: string; error?: AgentError }): LoopResult => {
     tracer?.emit({
       trace_id: traceId,
       span_id: rootSpanId,
@@ -204,7 +208,11 @@ async function execute<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): 
     // Budgets are checked BEFORE acting, never after the fact.
     const elapsed = Date.now() - startedAt;
     if (elapsed >= budgets.maxElapsedMs) {
-      const error = new BudgetExhaustedError("maxElapsedMs", `${elapsed}ms`, observations.map((o) => o.summary));
+      const error = new BudgetExhaustedError(
+        "maxElapsedMs",
+        `${elapsed}ms`,
+        observations.map((o) => o.summary),
+      );
       return finish({ transition: "stop-failure", reason: error.message }, { error });
     }
     if (toolCallCount >= budgets.maxToolCalls) {
@@ -304,7 +312,10 @@ async function execute<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): 
         continue; // recover: classified, transient, bounded — try again
       }
       return finish(
-        { transition: "stop-failure", reason: `Non-retryable failure: [${error?.code ?? "unknown"}] ${error?.message ?? ""}` },
+        {
+          transition: "stop-failure",
+          reason: `Non-retryable failure: [${error?.code ?? "unknown"}] ${error?.message ?? ""}`,
+        },
         { ...(error !== undefined ? { error } : {}) },
       );
     }
@@ -314,7 +325,10 @@ async function execute<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): 
         `Repeated output: ${observation.text.slice(0, 120)}`,
       ]);
       return finish(
-        { transition: "stop-failure", reason: `Stall detected: the agent repeated itself ${identicalOutputCount} times without new evidence.` },
+        {
+          transition: "stop-failure",
+          reason: `Stall detected: the agent repeated itself ${identicalOutputCount} times without new evidence.`,
+        },
         { error, text: observation.text },
       );
     }
@@ -336,7 +350,11 @@ async function execute<TOOLS extends ToolSet>(options: PraoLoopOptions<TOOLS>): 
     // kind partial/uncertain with no custom verdict: keep iterating within budget.
   }
 
-  const error = new BudgetExhaustedError("maxIterations", `${budgets.maxIterations}`, observations.map((o) => o.summary));
+  const error = new BudgetExhaustedError(
+    "maxIterations",
+    `${budgets.maxIterations}`,
+    observations.map((o) => o.summary),
+  );
   return finish(
     { transition: "stop-failure", reason: error.message },
     { error, text: observations.at(-1)?.text ?? "" },

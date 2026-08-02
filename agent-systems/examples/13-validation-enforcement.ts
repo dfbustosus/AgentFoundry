@@ -13,14 +13,7 @@
 
 import { generateText } from "ai";
 import { z } from "zod";
-import {
-  authorizationLayer,
-  budgetLayer,
-  enforce,
-  PolicyError,
-  schemaLayer,
-  enforceOrThrow,
-} from "../src/index.js";
+import { authorizationLayer, budgetLayer, enforce, PolicyError, schemaLayer, enforceOrThrow } from "../src/index.js";
 import { main, model, printJson, printSection } from "./lib/shared.js";
 
 const refundSchema = z.object({
@@ -53,9 +46,17 @@ await main(async () => {
   // 2. The enforcement pipeline. Same request, decided by code.
   console.log("\nEnforcement pipeline (structural):");
   const attempts = [
-    { kind: "refund.create", actor: "support-agent", payload: { amount: 50, currency: "USD", reason: "defective item" } },
+    {
+      kind: "refund.create",
+      actor: "support-agent",
+      payload: { amount: 50, currency: "USD", reason: "defective item" },
+    },
     { kind: "refund.create", actor: "chat-agent", payload: { amount: 50, currency: "USD", reason: "defective item" } },
-    { kind: "refund.create", actor: "support-agent", payload: { amount: 9_999, currency: "USD", reason: "defective item" } },
+    {
+      kind: "refund.create",
+      actor: "support-agent",
+      payload: { amount: 9_999, currency: "USD", reason: "defective item" },
+    },
     { kind: "refund.create", actor: "support-agent", payload: { amount: -50, currency: "EUR", reason: "x" } },
   ];
   for (const attempt of attempts) {

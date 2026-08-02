@@ -52,7 +52,11 @@ export async function withFallback<T>(
         priorFailures: failures,
       };
       if (failures.length > 0 || step.degrades.length > 0) {
-        onDegrade?.({ servedBy: outcome.servedBy, degradedGuarantees: outcome.degradedGuarantees, priorFailures: failures });
+        onDegrade?.({
+          servedBy: outcome.servedBy,
+          degradedGuarantees: outcome.degradedGuarantees,
+          priorFailures: failures,
+        });
       }
       return outcome;
     } catch (raw) {

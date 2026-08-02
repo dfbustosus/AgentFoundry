@@ -56,7 +56,10 @@ describe("deterministic scorers", () => {
 
 describe("llmJudge", () => {
   it("records the judge's verdict and reason as auditable evidence", async () => {
-    const judge = llmJudge(scriptedModel([textResult('{"pass": true, "reason": "mentions a budget"}')]), "mentions a budget");
+    const judge = llmJudge(
+      scriptedModel([textResult('{"pass": true, "reason": "mentions a budget"}')]),
+      "mentions a budget",
+    );
     const result = await judge(c(), "every loop needs a budget");
     expect(result.pass).toBe(true);
     expect(result.evidence).toBe("judge: mentions a budget");

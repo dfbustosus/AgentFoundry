@@ -13,7 +13,7 @@
  */
 
 import { tool, type Tool } from "ai";
-import { z } from "zod";
+import type { z } from "zod";
 import { classifyError } from "../errors/classify.js";
 import { PolicyError, ReasoningError, ToolError } from "../errors/taxonomy.js";
 import { newSpanId, newTraceId, nowIso, type Tracer } from "../trace/tracer.js";
@@ -90,10 +90,7 @@ export interface ContractToolOptions {
  * Build an AI SDK tool with the full contract enforced around `execute`.
  * The returned tool can be passed to `generateText` / `ToolLoopAgent` directly.
  */
-export function defineContractTool<I, O>(
-  contract: ToolContract<I, O>,
-  options: ContractToolOptions,
-): Tool<I, O> {
+export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: ContractToolOptions): Tool<I, O> {
   const { context } = options;
   const timeoutMs = contract.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
@@ -178,7 +175,13 @@ export function defineContractTool<I, O>(
         }
       }
 
-      options.tracer?.emit({ ...span, timestamp: nowIso(), type: "tool.result", tool: contract.name, durationMs: Date.now() - started });
+      options.tracer?.emit({
+        ...span,
+        timestamp: nowIso(),
+        type: "tool.result",
+        tool: contract.name,
+        durationMs: Date.now() - started,
+      });
       return output;
     } catch (raw) {
       const error = classifyError(raw);

@@ -36,12 +36,15 @@ await main(async () => {
   const question = "In one sentence: why must agent retries be bounded?";
 
   console.log("\nPart 1: bounded retry absorbs transient failure");
-  const retried = await withRetry(
-    "primary-model",
-    () => flakyPrimary(question),
-    { maxAttempts: 4, baseDelayMs: 200, maxDelayMs: 2_000, sideEffectSafe: true },
+  const retried = await withRetry("primary-model", () => flakyPrimary(question), {
+    maxAttempts: 4,
+    baseDelayMs: 200,
+    maxDelayMs: 2_000,
+    sideEffectSafe: true,
+  });
+  console.log(
+    `  succeeded on attempt ${retried.attempts}; prior errors: ${retried.errors.map((e) => e.code).join(", ")}`,
   );
-  console.log(`  succeeded on attempt ${retried.attempts}; prior errors: ${retried.errors.map((e) => e.code).join(", ")}`);
   console.log(`  answer: ${retried.value}`);
 
   console.log("\nPart 2: fallback chain with labeled degradation");
@@ -72,5 +75,7 @@ await main(async () => {
     degradedGuarantees: outcome.degradedGuarantees,
     priorFailures: outcome.priorFailures.map((f) => `${f.step}: ${f.error.code}`),
   });
-  console.log(`\nAnswer served by "${outcome.servedBy}" with degradation LABELLED: [${outcome.degradedGuarantees.join(", ")}]`);
+  console.log(
+    `\nAnswer served by "${outcome.servedBy}" with degradation LABELLED: [${outcome.degradedGuarantees.join(", ")}]`,
+  );
 });

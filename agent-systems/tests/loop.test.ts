@@ -117,7 +117,11 @@ describe("runPraoLoop", () => {
 
   it("detects stalls when the model repeats itself", async () => {
     const result = await runPraoLoop({
-      model: scriptedModel([textResult("same answer", "tool-calls"), textResult("same answer", "tool-calls"), textResult("same answer", "tool-calls")]),
+      model: scriptedModel([
+        textResult("same answer", "tool-calls"),
+        textResult("same answer", "tool-calls"),
+        textResult("same answer", "tool-calls"),
+      ]),
       system: "s",
       goal: "g",
       budgets: { maxIdenticalOutputs: 2, maxIterations: 10 },
@@ -158,7 +162,11 @@ describe("runPraoLoop", () => {
       goal: "g",
       decide: (obs) =>
         obs.text.includes("need more information")
-          ? { transition: "clarify", reason: "Missing high-impact fact.", request: "Which environment: staging or prod?" }
+          ? {
+              transition: "clarify",
+              reason: "Missing high-impact fact.",
+              request: "Which environment: staging or prod?",
+            }
           : undefined,
     });
     expect(result.transition).toBe("clarify");

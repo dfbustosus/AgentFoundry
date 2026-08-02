@@ -9,13 +9,7 @@
 
 import { APICallError, RetryError } from "ai";
 import { ZodError } from "zod";
-import {
-  AgentError,
-  EnvironmentError,
-  ReasoningError,
-  ToolError,
-  type AgentErrorDetails,
-} from "./taxonomy.js";
+import { AgentError, EnvironmentError, ReasoningError, ToolError, type AgentErrorDetails } from "./taxonomy.js";
 
 const DEFAULTS = {
   retryable: false,
@@ -49,15 +43,18 @@ export function classifyError(err: unknown): AgentError {
     const status = err.statusCode;
     const transient =
       status !== undefined && (status === 408 || status === 409 || status === 425 || status === 429 || status >= 500);
-    return new EnvironmentError(`Provider API call failed${status !== undefined ? ` (HTTP ${status})` : ""}: ${err.message}`, {
-      ...DEFAULTS,
-      retryable: transient,
-      sideEffect: "none",
-      blastRadius: "workflow",
-      code: transient ? "environment.provider_transient" : "environment.provider_permanent",
-      evidence: [`statusCode=${String(status)}`, `url=${err.url}`],
-      cause: err,
-    });
+    return new EnvironmentError(
+      `Provider API call failed${status !== undefined ? ` (HTTP ${status})` : ""}: ${err.message}`,
+      {
+        ...DEFAULTS,
+        retryable: transient,
+        sideEffect: "none",
+        blastRadius: "workflow",
+        code: transient ? "environment.provider_transient" : "environment.provider_permanent",
+        evidence: [`statusCode=${String(status)}`, `url=${err.url}`],
+        cause: err,
+      },
+    );
   }
 
   if (err instanceof RetryError) {
@@ -81,19 +78,24 @@ export function classifyError(err: unknown): AgentError {
   }
 
   if (err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError")) {
-    return new EnvironmentError(`Operation ${err.name === "TimeoutError" ? "timed out" : "was aborted"}: ${err.message}`, {
-      ...DEFAULTS,
-      retryable: err.name === "TimeoutError",
-      blastRadius: "local",
-      code: `environment.${err.name === "TimeoutError" ? "timeout" : "aborted"}`,
-      cause: err,
-    });
+    return new EnvironmentError(
+      `Operation ${err.name === "TimeoutError" ? "timed out" : "was aborted"}: ${err.message}`,
+      {
+        ...DEFAULTS,
+        retryable: err.name === "TimeoutError",
+        blastRadius: "local",
+        code: `environment.${err.name === "TimeoutError" ? "timeout" : "aborted"}`,
+        cause: err,
+      },
+    );
   }
 
   // Node.js system errors carry a string `code` (ECONNREFUSED, ENOTFOUND, EACCES...).
   const nodeCode = (err as { code?: unknown } | null)?.code;
   if (err instanceof Error && typeof nodeCode === "string") {
-    const transientNet = ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "EPIPE", "ENOTFOUND", "EAI_AGAIN"].includes(nodeCode);
+    const transientNet = ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "EPIPE", "ENOTFOUND", "EAI_AGAIN"].includes(
+      nodeCode,
+    );
     return new EnvironmentError(`System error ${nodeCode}: ${err.message}`, {
       ...DEFAULTS,
       retryable: transientNet,

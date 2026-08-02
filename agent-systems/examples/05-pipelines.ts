@@ -48,7 +48,13 @@ await main(async () => {
           system: "List up to 3 concrete weaknesses, one per line, no preamble.",
           prompt: `Tagline: ${draft}`,
         });
-        return { draft, issues: r.text.split("\n").filter((l) => l.trim().length > 0).slice(0, 3) };
+        return {
+          draft,
+          issues: r.text
+            .split("\n")
+            .filter((l) => l.trim().length > 0)
+            .slice(0, 3),
+        };
       },
     },
     {

@@ -13,7 +13,7 @@
 
 import { ReasoningError } from "../errors/taxonomy.js";
 
-export interface TaskNode<I = unknown, O = unknown> {
+export interface TaskNode<_I = unknown, O = unknown> {
   readonly id: string;
   /** Observable outcome, not an activity. */
   readonly objective: string;

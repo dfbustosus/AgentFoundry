@@ -33,8 +33,18 @@ await main(async () => {
 
   // Initial plan assumes the summary should be technical.
   const initial = new TaskGraph()
-    .add({ id: "research", objective: "Research topic X", dependsOn: [], run: runLlmTask("List 3 facts about graphite.") })
-    .add({ id: "technical-summary", objective: "Technical summary", dependsOn: ["research"], run: runLlmTask("Write a technical summary of graphite for engineers.") });
+    .add({
+      id: "research",
+      objective: "Research topic X",
+      dependsOn: [],
+      run: runLlmTask("List 3 facts about graphite."),
+    })
+    .add({
+      id: "technical-summary",
+      objective: "Technical summary",
+      dependsOn: ["research"],
+      run: runLlmTask("Write a technical summary of graphite for engineers."),
+    });
 
   const first = await executeGraph(initial);
   console.log(`\nInitial plan: completed=[${Object.keys(first.outputs).join(", ")}]`);
@@ -65,7 +75,7 @@ await main(async () => {
         await generateText({
           model: llm,
           system: "Write for executives: outcome-first, no jargon.",
-          prompt: `Summarize for executives using these facts:\n${String(first.outputs["research"])}`,
+          prompt: `Summarize for executives using these facts:\n${String(first.outputs.research)}`,
         })
       ).text,
   });

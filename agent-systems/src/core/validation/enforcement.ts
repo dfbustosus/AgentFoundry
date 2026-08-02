@@ -57,10 +57,7 @@ export async function enforce<A>(
 }
 
 /** Enforce or throw. Use at the point of no return, not three calls earlier. */
-export async function enforceOrThrow<A>(
-  action: ActionProposal<A>,
-  layers: readonly EnforcementLayer[],
-): Promise<void> {
+export async function enforceOrThrow<A>(action: ActionProposal<A>, layers: readonly EnforcementLayer[]): Promise<void> {
   const decision = await enforce(action, layers);
   if (!decision.allowed) {
     throw new PolicyError(
@@ -113,7 +110,9 @@ export function budgetLayer(
     name,
     check: (action) => {
       const amount = extractAmount(action.payload);
-      return amount <= ceiling ? undefined : `amount ${String(amount)} exceeds deterministic ceiling ${String(ceiling)}`;
+      return amount <= ceiling
+        ? undefined
+        : `amount ${String(amount)} exceeds deterministic ceiling ${String(ceiling)}`;
     },
   };
 }
@@ -122,10 +121,7 @@ export function budgetLayer(
  * Postcondition verification AFTER a high-stakes action ran. The action's
  * own success response is not evidence; this re-reads the world.
  */
-export async function verifyPostcondition(
-  description: string,
-  check: () => Promise<true | string>,
-): Promise<void> {
+export async function verifyPostcondition(description: string, check: () => Promise<true | string>): Promise<void> {
   const verdict = await check();
   if (verdict !== true) {
     throw new ReasoningError(`Postcondition failed: ${description} — ${verdict}`, {

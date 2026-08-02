@@ -22,9 +22,7 @@ describe("TaskGraph validation", () => {
   });
 
   it("rejects cycles", () => {
-    const graph = new TaskGraph()
-      .add(node("a", ["b"], async () => 1))
-      .add(node("b", ["a"], async () => 2));
+    const graph = new TaskGraph().add(node("a", ["b"], async () => 1)).add(node("b", ["a"], async () => 2));
     expect(() => graph.layers()).toThrowError(/cycle/);
   });
 
@@ -36,17 +34,15 @@ describe("TaskGraph validation", () => {
 
 describe("executeGraph", () => {
   it("passes dependency outputs to dependents", async () => {
-    const graph = new TaskGraph()
-      .add(node("a", [], async () => 2))
-      .add({
-        id: "b",
-        objective: "double a",
-        dependsOn: ["a"],
-        run: async (inputs) => (inputs["a"] as number) * 2,
-      });
+    const graph = new TaskGraph().add(node("a", [], async () => 2)).add({
+      id: "b",
+      objective: "double a",
+      dependsOn: ["a"],
+      run: async (inputs) => (inputs.a as number) * 2,
+    });
     const result = await executeGraph(graph);
     expect(result.ok).toBe(true);
-    expect(result.outputs["b"]).toBe(4);
+    expect(result.outputs.b).toBe(4);
   });
 
   it("skips dependents of a failed task but continues unrelated branches", async () => {
@@ -74,7 +70,7 @@ describe("executeGraph", () => {
     expect(result.failed).toEqual(["bad"]);
     expect(result.skipped).toEqual(["child-of-bad"]);
     expect(result.records["child-of-bad"]?.reason).toContain('"bad" failed');
-    expect(result.outputs["independent"]).toBe("ok");
+    expect(result.outputs.independent).toBe("ok");
     expect(result.ok).toBe(false);
   });
 
@@ -91,7 +87,7 @@ describe("executeGraph", () => {
       })
       .add(node("later", ["fatal"], async () => "never"));
     const result = await executeGraph(graph);
-    expect(result.records["later"]?.reason).toContain("aborted");
+    expect(result.records.later?.reason).toContain("aborted");
   });
 
   it("bounds concurrency within a layer", async () => {
@@ -125,7 +121,7 @@ describe("pattern constructors", () => {
       { id: "label", objective: "label it", run: async (n) => `value=${String(n)}` },
     ]);
     const result = await executeGraph(graph);
-    expect(result.outputs["label"]).toBe("value=10");
+    expect(result.outputs.label).toBe("value=10");
   });
 
   it("parallel fans out into a fan-in barrier receiving all branch outputs", async () => {
@@ -137,10 +133,10 @@ describe("pattern constructors", () => {
       {
         id: "merge",
         objective: "sum branches",
-        run: async (inputs) => (inputs["left"] as number) + (inputs["right"] as number),
+        run: async (inputs) => (inputs.left as number) + (inputs.right as number),
       },
     );
     const result = await executeGraph(graph);
-    expect(result.outputs["merge"]).toBe(3);
+    expect(result.outputs.merge).toBe(3);
   });
 });

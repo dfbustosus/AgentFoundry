@@ -33,11 +33,15 @@ await main(async () => {
         { task_id: "send-welcome-email", status: "in_progress", owner: "notifications", attempt: 1 },
         { task_id: "schedule-training", status: "pending", owner: "scheduling", attempt: 0 },
       ],
-      decisions: [{ decision: "Email before training", rationale: "Account credentials needed first", reversible: true }],
+      decisions: [
+        { decision: "Email before training", rationale: "Account credentials needed first", reversible: true },
+      ],
       assumptions: [],
       // CRITICAL: the email WAS sent before the crash. This record is the only
       // thing preventing a duplicate send on resume.
-      completedEffects: [{ key: "send-welcome-email", effect: "welcome email sent", completedAt: new Date().toISOString() }],
+      completedEffects: [
+        { key: "send-welcome-email", effect: "welcome email sent", completedAt: new Date().toISOString() },
+      ],
       nextAction: "schedule-training",
       savedAt: new Date().toISOString(),
     };

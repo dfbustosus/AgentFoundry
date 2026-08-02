@@ -22,9 +22,25 @@ await main(async () => {
 
   const outcomes = await fanOut(
     [
-      { id: "fast-model", authorityRank: 1, input: question, run: async (q) => (await generateText({ model: llm, prompt: `${q} One sentence.` })).text },
-      { id: "careful-model", authorityRank: 2, input: question, run: async (q) => (await generateText({ model: llm, system: "Answer as a staff SRE.", prompt: `${q} One sentence.` })).text },
-      { id: "policy-source", authorityRank: 3, input: question, run: async () => "Enforce authorization and budgets in deterministic code, not prompts." },
+      {
+        id: "fast-model",
+        authorityRank: 1,
+        input: question,
+        run: async (q) => (await generateText({ model: llm, prompt: `${q} One sentence.` })).text,
+      },
+      {
+        id: "careful-model",
+        authorityRank: 2,
+        input: question,
+        run: async (q) =>
+          (await generateText({ model: llm, system: "Answer as a staff SRE.", prompt: `${q} One sentence.` })).text,
+      },
+      {
+        id: "policy-source",
+        authorityRank: 3,
+        input: question,
+        run: async () => "Enforce authorization and budgets in deterministic code, not prompts.",
+      },
     ],
     { concurrency: 3 },
   );
@@ -33,7 +49,7 @@ await main(async () => {
   for (const o of outcomes) console.log(`  [${o.status}] ${o.id} (rank ${o.authorityRank})`);
 
   const merged = fanIn<string>(outcomes, {
-    project: (branch, output) => ({ recommendation: output as string }),
+    project: (_branch, output) => ({ recommendation: output as string }),
   });
 
   printJson("Fan-in result", {
@@ -43,7 +59,7 @@ await main(async () => {
   });
 
   console.log(
-    `\nWinner: "${merged.merged["recommendation"] ?? ""}"\n` +
+    `\nWinner: "${merged.merged.recommendation ?? ""}"\n` +
       "The highest-authority source won by policy — recorded, not voted.",
   );
 });

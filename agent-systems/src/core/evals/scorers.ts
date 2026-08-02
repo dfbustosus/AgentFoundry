@@ -34,7 +34,9 @@ export function exactMatch(): Scorer {
       scorer: "exactMatch",
       pass,
       score: pass ? 1 : 0,
-      evidence: pass ? "normalized outputs match" : `expected "${normalize(c.expected).slice(0, 80)}", got "${normalize(output).slice(0, 80)}"`,
+      evidence: pass
+        ? "normalized outputs match"
+        : `expected "${normalize(c.expected).slice(0, 80)}", got "${normalize(output).slice(0, 80)}"`,
     };
   };
 }

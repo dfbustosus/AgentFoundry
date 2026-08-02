@@ -91,10 +91,7 @@ export interface FanInOptions<T> {
  * 2. tie → more recent completion wins;
  * 3. every conflict is recorded with its resolution rationale.
  */
-export function fanIn<T>(
-  outcomes: readonly BranchOutcome<unknown>[],
-  options: FanInOptions<T>,
-): FanInResult<T> {
+export function fanIn<T>(outcomes: readonly BranchOutcome<unknown>[], options: FanInOptions<T>): FanInResult<T> {
   const onFailure = options.onBranchFailure ?? "tolerate";
   const failed = outcomes
     .filter((o): o is BranchOutcome<unknown> & { status: "failed"; error: AgentError } => o.status === "failed")
@@ -102,7 +99,7 @@ export function fanIn<T>(
 
   if (failed.length > 0 && onFailure === "require-all") {
     const first = failed[0];
-    throw (first?.error ?? new Error("fan-in aborted: required branch failed"));
+    throw first?.error ?? new Error("fan-in aborted: required branch failed");
   }
 
   const byKey = new Map<string, { branch: string; value: T; authorityRank: number; completedAt: number }[]>();

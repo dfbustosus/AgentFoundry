@@ -11,13 +11,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import {
-  createEnvelope,
-  InMemoryBus,
-  receiveHandoff,
-  replyTo,
-  validateEnvelope,
-} from "../src/index.js";
+import { createEnvelope, InMemoryBus, receiveHandoff, replyTo, validateEnvelope } from "../src/index.js";
 import { main, printJson, printSection } from "./lib/shared.js";
 
 await main(async () => {

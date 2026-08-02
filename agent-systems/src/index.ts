@@ -33,11 +33,24 @@ export {
 export { classifyError, isCategory } from "./core/errors/classify.js";
 
 // reliability
-export { computeDelayMs, RetryExhaustedError, withRetry, type RetryContext, type RetryOutcome, type RetryPolicy } from "./core/reliability/retry.js";
+export {
+  computeDelayMs,
+  RetryExhaustedError,
+  withRetry,
+  type RetryContext,
+  type RetryOutcome,
+  type RetryPolicy,
+} from "./core/reliability/retry.js";
 export { withFallback, type FallbackOutcome, type FallbackStep } from "./core/reliability/fallback.js";
 
 // tools
-export { contractSummary, defineContractTool, type SideEffectKind, type ToolContext, type ToolContract } from "./core/tools/contract.js";
+export {
+  contractSummary,
+  defineContractTool,
+  type SideEffectKind,
+  type ToolContext,
+  type ToolContract,
+} from "./core/tools/contract.js";
 
 // loop
 export {
@@ -54,8 +67,26 @@ export {
 } from "./core/loop/prao.js";
 
 // decomposition
-export { executeGraph, pooled, TaskGraph, type ExecuteOptions, type GraphResult, type TaskNode, type TaskRecord, type TaskStatus } from "./core/decomposition/graph.js";
-export { bindPlan, parallel, planHierarchical, sequential, subtaskPlanSchema, type Branch, type Stage, type SubtaskPlan } from "./core/decomposition/patterns.js";
+export {
+  executeGraph,
+  pooled,
+  TaskGraph,
+  type ExecuteOptions,
+  type GraphResult,
+  type TaskNode,
+  type TaskRecord,
+  type TaskStatus,
+} from "./core/decomposition/graph.js";
+export {
+  bindPlan,
+  parallel,
+  planHierarchical,
+  sequential,
+  subtaskPlanSchema,
+  type Branch,
+  type Stage,
+  type SubtaskPlan,
+} from "./core/decomposition/patterns.js";
 
 // handoff
 export {
@@ -93,9 +124,27 @@ export {
   type TaskBrief,
 } from "./core/orchestration/subagent.js";
 export { Orchestrator, type OrchestratorOptions, type SpokeResult } from "./core/orchestration/hub-spoke.js";
-export { runPipeline, type PipelineRecord, type PipelineResult, type PipelineStage } from "./core/orchestration/pipeline.js";
-export { fanIn, fanOut, type BranchOutcome, type Conflict, type FanInOptions, type FanInResult, type FanOutBranch } from "./core/orchestration/fanout.js";
-export { selectTopology, type ProblemShape, type Topology, type TopologyVerdict } from "./core/orchestration/topology.js";
+export {
+  runPipeline,
+  type PipelineRecord,
+  type PipelineResult,
+  type PipelineStage,
+} from "./core/orchestration/pipeline.js";
+export {
+  fanIn,
+  fanOut,
+  type BranchOutcome,
+  type Conflict,
+  type FanInOptions,
+  type FanInResult,
+  type FanOutBranch,
+} from "./core/orchestration/fanout.js";
+export {
+  selectTopology,
+  type ProblemShape,
+  type Topology,
+  type TopologyVerdict,
+} from "./core/orchestration/topology.js";
 
 // validation
 export {
@@ -121,16 +170,48 @@ export {
 } from "./core/validation/approval.js";
 
 // cost
-export { CostTracker, estimateCostUsd, multiAgentFit, PRICE_STALENESS_DAYS, PRICE_TABLE, stalePriceModels, type CostReport, type ModelPrice } from "./core/cost/tracker.js";
+export {
+  CostTracker,
+  estimateCostUsd,
+  multiAgentFit,
+  PRICE_STALENESS_DAYS,
+  PRICE_TABLE,
+  stalePriceModels,
+  type CostReport,
+  type ModelPrice,
+} from "./core/cost/tracker.js";
 
 // mcp
 export { connectMcpServer, type ConnectOptions, type McpServerHandle } from "./core/mcp/client.js";
 
 // trace
-export { ConsoleTracer, JsonlTracer, newSpanId, newTraceId, NoopTracer, nowIso, type Tracer } from "./core/trace/tracer.js";
+export {
+  ConsoleTracer,
+  JsonlTracer,
+  newSpanId,
+  newTraceId,
+  NoopTracer,
+  nowIso,
+  type Tracer,
+} from "./core/trace/tracer.js";
 export { parseTraceEvent, traceEventSchema, type TraceEvent } from "./core/trace/events.js";
 
 // evals
-export { defineDataset, evalCaseSchema, evalDatasetSchema, parseDataset, type EvalCase, type EvalDataset } from "./core/evals/dataset.js";
-export { contains, exactMatch, jsonSchemaOutput, llmJudge, matchesPattern, type ScoreResult, type Scorer } from "./core/evals/scorers.js";
+export {
+  defineDataset,
+  evalCaseSchema,
+  evalDatasetSchema,
+  parseDataset,
+  type EvalCase,
+  type EvalDataset,
+} from "./core/evals/dataset.js";
+export {
+  contains,
+  exactMatch,
+  jsonSchemaOutput,
+  llmJudge,
+  matchesPattern,
+  type ScoreResult,
+  type Scorer,
+} from "./core/evals/scorers.js";
 export { runEval, type EvalCaseResult, type EvalReport, type RunEvalOptions } from "./core/evals/runner.js";

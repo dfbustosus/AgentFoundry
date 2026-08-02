@@ -80,11 +80,11 @@ export function selectTopology(shape: ProblemShape): TopologyVerdict {
     );
   }
   if (shape.partitionable && !shape.needsCanonicalOwner) {
-    return pick(
-      "fan-out-fan-in",
-      "Independent partitions can run concurrently behind one synchronization barrier.",
-      ["bounded concurrency", "merge/conflict policy", "partial-failure handling"],
-    );
+    return pick("fan-out-fan-in", "Independent partitions can run concurrently behind one synchronization barrier.", [
+      "bounded concurrency",
+      "merge/conflict policy",
+      "partial-failure handling",
+    ]);
   }
   if (shape.needsCanonicalOwner) {
     return pick(
@@ -93,9 +93,9 @@ export function selectTopology(shape: ProblemShape): TopologyVerdict {
       ["context transfer per delegation", "hub verification of every reply", "hub bottleneck"],
     );
   }
-  return pick(
-    "hybrid-dag",
-    "The problem mixes staging and parallelism; model it as a DAG with explicit barriers.",
-    ["graph validation", "barrier synchronization", "cross-cutting integration checks"],
-  );
+  return pick("hybrid-dag", "The problem mixes staging and parallelism; model it as a DAG with explicit barriers.", [
+    "graph validation",
+    "barrier synchronization",
+    "cross-cutting integration checks",
+  ]);
 }

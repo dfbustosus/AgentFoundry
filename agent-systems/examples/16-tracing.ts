@@ -65,8 +65,7 @@ await main(async () => {
     const correlated = spans.every((s) => s.trace_id === result.traceId);
     console.log(`\nAll spans correlated under one trace_id: ${correlated}`);
     console.log(
-      "This file is the difference between 'trust me, the agent behaved' and " +
-        "'here is every step, with evidence'.",
+      "This file is the difference between 'trust me, the agent behaved' and " + "'here is every step, with evidence'.",
     );
   } finally {
     await rm(dir, { recursive: true, force: true });

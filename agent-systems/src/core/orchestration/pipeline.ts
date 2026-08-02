@@ -50,13 +50,16 @@ export async function runPipeline(
       const raw = await stage.run(artifact as never);
       const parsed = stage.outputSchema.safeParse(raw);
       if (!parsed.success) {
-        const error = new ReasoningError(`Pipeline stage "${stage.id}" produced an artifact violating its output schema.`, {
-          retryable: false,
-          sideEffect: "none",
-          blastRadius: "workflow",
-          code: "reasoning.pipeline_boundary_violation",
-          evidence: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
-        });
+        const error = new ReasoningError(
+          `Pipeline stage "${stage.id}" produced an artifact violating its output schema.`,
+          {
+            retryable: false,
+            sideEffect: "none",
+            blastRadius: "workflow",
+            code: "reasoning.pipeline_boundary_violation",
+            evidence: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+          },
+        );
         records.push({ stageId: stage.id, durationMs: Date.now() - started, status: "failed", error: error.message });
         return { records, ok: false, failedAt: stage.id };
       }

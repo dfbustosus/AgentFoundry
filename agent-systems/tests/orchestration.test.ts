@@ -65,7 +65,7 @@ describe("fan-out/fan-in", () => {
     const merged = fanIn<string>(outcomes, {
       project: (_branch, output) => ({ answer: (output as { answer: string }).answer }),
     });
-    expect(merged.merged["answer"]).toBe("B");
+    expect(merged.merged.answer).toBe("B");
     expect(merged.conflicts[0]?.winner).toBe("senior");
     expect(merged.conflicts[0]?.resolution).toBe("authority");
   });
@@ -82,7 +82,7 @@ describe("fan-out/fan-in", () => {
       },
     ];
     const merged = fanIn<number>(outcomes, { project: (_b, o) => ({ value: o as number }) });
-    expect(merged.merged["value"]).toBe(1);
+    expect(merged.merged.value).toBe(1);
     expect(merged.failedBranches.map((f) => f.id)).toEqual(["bad"]);
     expect(merged.missing).toEqual(["bad"]);
   });
@@ -135,7 +135,11 @@ describe("topology selection", () => {
 });
 
 describe("subagent authority and isolation", () => {
-  const makeAgent = (id: string, authority: SubagentDefinition["authority"], writeScopes: string[]): SubagentDefinition => ({
+  const makeAgent = (
+    id: string,
+    authority: SubagentDefinition["authority"],
+    writeScopes: string[],
+  ): SubagentDefinition => ({
     id,
     role: "tester",
     instructions: "test",

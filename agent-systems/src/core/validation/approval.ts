@@ -130,11 +130,9 @@ export class ApprovalGate {
     };
 
     if (handlerFailed) {
-      return fail(
-        "policy.approval_handler_error",
-        `Approval handler errored for "${action.kind}"; failing closed.`,
-        [`request=${request.id}`],
-      );
+      return fail("policy.approval_handler_error", `Approval handler errored for "${action.kind}"; failing closed.`, [
+        `request=${request.id}`,
+      ]);
     }
     if (decision === null) {
       return fail(

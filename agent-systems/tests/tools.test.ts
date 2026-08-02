@@ -92,7 +92,8 @@ describe("defineContractTool", () => {
   it("fails the postcondition check as a reasoning error with evidence", async () => {
     const tool = makeTool({
       execute: async ({ n }) => ({ result: n * 3 }), // wrong on purpose
-      postcondition: (input, output) => output.result === input.n * 2 || `expected ${input.n * 2}, got ${output.result}`,
+      postcondition: (input, output) =>
+        output.result === input.n * 2 || `expected ${input.n * 2}, got ${output.result}`,
     });
     await expect(exec(tool, { n: 2 })).rejects.toMatchObject({
       code: "reasoning.postcondition_failed",

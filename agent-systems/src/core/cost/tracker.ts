@@ -45,7 +45,10 @@ export function stalePriceModels(
     .map(([model]) => model);
 }
 
-export function estimateCostUsd(model: string, usage: { inputTokens: number; outputTokens: number }): number | undefined {
+export function estimateCostUsd(
+  model: string,
+  usage: { inputTokens: number; outputTokens: number },
+): number | undefined {
   const price = PRICE_TABLE[model];
   if (price === undefined) return undefined; // unknown model: report tokens, not invented dollars
   return (usage.inputTokens / 1_000_000) * price.inputPer1M + (usage.outputTokens / 1_000_000) * price.outputPer1M;
@@ -84,7 +87,11 @@ export class CostTracker {
     private readonly onBudgetCrossed?: (report: CostReport) => void,
   ) {}
 
-  record(agentId: string, model: string, usage: LanguageModelUsage | { inputTokens: number; outputTokens: number }): void {
+  record(
+    agentId: string,
+    model: string,
+    usage: LanguageModelUsage | { inputTokens: number; outputTokens: number },
+  ): void {
     const key = `${agentId}:${model}`;
     const existing = this.records.get(key) ?? { agentId, model, inputTokens: 0, outputTokens: 0, calls: 0 };
     existing.inputTokens += usage.inputTokens ?? 0;
@@ -114,11 +121,15 @@ export class CostTracker {
     });
     const totalTokens = perAgent.reduce((acc, r) => acc + r.inputTokens + r.outputTokens, 0);
     const hasUnpricedModels = perAgent.some((r) => r.costUsd === undefined);
-    const totalCostUsd = hasUnpricedModels
-      ? undefined
-      : perAgent.reduce((acc, r) => acc + (r.costUsd ?? 0), 0);
+    const totalCostUsd = hasUnpricedModels ? undefined : perAgent.reduce((acc, r) => acc + (r.costUsd ?? 0), 0);
     const stale = stalePriceModels(PRICE_TABLE).filter((model) => perAgent.some((r) => r.model === model));
-    return { perAgent, totalTokens, ...(totalCostUsd !== undefined ? { totalCostUsd } : {}), hasUnpricedModels, stalePriceModels: stale };
+    return {
+      perAgent,
+      totalTokens,
+      ...(totalCostUsd !== undefined ? { totalCostUsd } : {}),
+      hasUnpricedModels,
+      stalePriceModels: stale,
+    };
   }
 }
 
@@ -139,8 +150,14 @@ export function multiAgentFit(input: {
   if (input.humanHoursSaved !== undefined && input.humanHourValueUsd !== undefined) {
     const benefit = input.humanHoursSaved * input.humanHourValueUsd;
     return benefit > overhead
-      ? { justified: true, rationale: `Coordination costs $${overhead.toFixed(4)} but saves ~$${benefit.toFixed(2)} of human time.` }
-      : { justified: false, rationale: `Coordination costs $${overhead.toFixed(4)} against ~$${benefit.toFixed(2)} of human time saved — use one agent.` };
+      ? {
+          justified: true,
+          rationale: `Coordination costs $${overhead.toFixed(4)} but saves ~$${benefit.toFixed(2)} of human time.`,
+        }
+      : {
+          justified: false,
+          rationale: `Coordination costs $${overhead.toFixed(4)} against ~$${benefit.toFixed(2)} of human time saved — use one agent.`,
+        };
   }
   return overhead <= 0
     ? { justified: true, rationale: "Multi-agent path is not more expensive than the single-agent path." }

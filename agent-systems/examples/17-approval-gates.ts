@@ -24,7 +24,6 @@ import {
   ConsoleTracer,
   enforce,
   schemaLayer,
-  type ApprovalDecision,
   type ApprovalHandler,
 } from "../src/index.js";
 import { main, printSection } from "./lib/shared.js";
@@ -35,14 +34,21 @@ function cliApprovalHandler(timeoutMs: number): ApprovalHandler {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
       console.log(`\n  APPROVAL REQUIRED (${request.id.slice(0, 8)}): ${request.reason}`);
-      console.log(`  Action: ${request.action.kind} by ${request.action.actor} — ${JSON.stringify(request.action.payload)}`);
+      console.log(
+        `  Action: ${request.action.kind} by ${request.action.actor} — ${JSON.stringify(request.action.payload)}`,
+      );
       const answer = await Promise.race([
         rl.question("  Approve? [y/N] "),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
       ]);
       const decidedAt = new Date().toISOString();
       if (answer === null || answer.trim().toLowerCase() !== "y") {
-        return { approved: false, approver: "terminal-user", decidedAt, reason: answer === null ? "timed out" : "declined" };
+        return {
+          approved: false,
+          approver: "terminal-user",
+          decidedAt,
+          reason: answer === null ? "timed out" : "declined",
+        };
       }
       return { approved: true, approver: "terminal-user", decidedAt };
     } finally {
@@ -68,7 +74,7 @@ const paymentSchema = z.object({ amount: z.number().positive(), currency: z.lite
 await main(async () => {
   printSection("17 — Human-in-the-loop approval gates");
 
-  const isMock = process.env["AGENT_SYSTEMS_MOCK"] === "1";
+  const isMock = process.env.AGENT_SYSTEMS_MOCK === "1";
   const tracer = new ConsoleTracer((line) => console.log(`  [trace] ${JSON.parse(line).type}`));
   const gate = new ApprovalGate(isMock ? scriptedHandler() : cliApprovalHandler(30_000), {
     timeoutMs: 30_000,

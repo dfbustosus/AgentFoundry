@@ -114,9 +114,9 @@ export function createEnvelope(parts: EnvelopeParts): HandoffEnvelope {
 }
 
 /** Validate an untrusted value as an envelope. Returns issues instead of throwing. */
-export function validateEnvelope(raw: unknown):
-  | { ok: true; envelope: HandoffEnvelope }
-  | { ok: false; issues: readonly string[] } {
+export function validateEnvelope(
+  raw: unknown,
+): { ok: true; envelope: HandoffEnvelope } | { ok: false; issues: readonly string[] } {
   const parsed = handoffEnvelopeSchema.safeParse(raw);
   if (parsed.success) return { ok: true, envelope: parsed.data };
   return { ok: false, issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) };
