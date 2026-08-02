@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { PolicyError, ReasoningError } from "../src/core/errors/taxonomy.js";
-import { CostTracker, estimateCostUsd, multiAgentFit, stalePriceModels, type ModelPrice } from "../src/core/cost/tracker.js";
+import {
+  CostTracker,
+  estimateCostUsd,
+  multiAgentFit,
+  stalePriceModels,
+  type ModelPrice,
+} from "../src/core/cost/tracker.js";
 import {
   authorizationLayer,
   budgetLayer,
@@ -40,13 +46,8 @@ describe("enforcement layers", () => {
 
   it("denies unauthorized actors even with a valid payload — prompts cannot fix this", async () => {
     await expect(
-      enforceOrThrow(
-        { kind: "refund.create", actor: "read-agent", payload: { amount: 50, currency: "USD" } },
-        layers,
-      ),
-    ).rejects.toSatisfy(
-      (e: unknown) => e instanceof PolicyError && e.message.includes("authorization"),
-    );
+      enforceOrThrow({ kind: "refund.create", actor: "read-agent", payload: { amount: 50, currency: "USD" } }, layers),
+    ).rejects.toSatisfy((e: unknown) => e instanceof PolicyError && e.message.includes("authorization"));
   });
 
   it("enforces deterministic ceilings regardless of model confidence", async () => {
@@ -105,9 +106,7 @@ describe("cost tracking", () => {
   });
 
   it("multiAgentFit demands quantified benefit for coordination overhead", () => {
-    expect(
-      multiAgentFit({ singleAgentCostUsd: 0.01, multiAgentCostUsd: 0.05 }).justified,
-    ).toBe(false);
+    expect(multiAgentFit({ singleAgentCostUsd: 0.01, multiAgentCostUsd: 0.05 }).justified).toBe(false);
     expect(
       multiAgentFit({
         singleAgentCostUsd: 0.01,
