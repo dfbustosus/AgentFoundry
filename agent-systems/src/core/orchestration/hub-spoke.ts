@@ -20,6 +20,7 @@ import { ReasoningError } from "../errors/taxonomy.js";
 import { createEnvelope, validateEnvelope, type HandoffEnvelope } from "../handoff/envelope.js";
 import { replyTo, type MessageBus } from "../handoff/protocol.js";
 import { runPraoLoop, type LoopResult } from "../loop/prao.js";
+import { newSpanId, nowIso, type Tracer } from "../trace/tracer.js";
 import {
   assertDelegationWithinAuthority,
   assertNonOverlappingScopes,
@@ -42,17 +43,47 @@ export interface OrchestratorOptions {
   readonly id: string;
   readonly model: LanguageModel;
   readonly bus: MessageBus;
+  /** Optional trace sink; delegation and handoff spans are emitted with the correlation id as trace id. */
+  readonly tracer?: Tracer;
 }
 
 export class Orchestrator {
   readonly id: string;
   private readonly model: LanguageModel;
   private readonly bus: MessageBus;
+  private readonly tracer?: Tracer;
 
   constructor(options: OrchestratorOptions) {
     this.id = options.id;
     this.model = options.model;
     this.bus = options.bus;
+    this.tracer = options.tracer;
+  }
+
+  private emitDelegation(correlationId: string, agent: SubagentDefinition, brief: TaskBrief, messageId: string): void {
+    this.tracer?.emit({
+      trace_id: correlationId,
+      span_id: newSpanId(),
+      parent_span_id: null,
+      timestamp: nowIso(),
+      actor: this.id,
+      type: "orchestrator.delegate",
+      agent: agent.id,
+      task_id: brief.task_id,
+      authority: agent.authority,
+    });
+    this.tracer?.emit({
+      trace_id: correlationId,
+      span_id: newSpanId(),
+      parent_span_id: null,
+      timestamp: nowIso(),
+      actor: this.id,
+      type: "handoff.sent",
+      message_id: messageId,
+      intent: "delegate",
+      recipient: agent.id,
+      task_id: brief.task_id,
+    });
   }
 
   /**
@@ -90,6 +121,7 @@ export class Orchestrator {
       recommended_next_action: "Execute the task and return a result envelope with evidence.",
     });
     this.bus.send(delegation);
+    this.emitDelegation(options.correlation_id, agent, brief, delegation.message_id);
 
     const loop = await runPraoLoop({
       model: agent.model,
@@ -101,6 +133,7 @@ export class Orchestrator {
         "never manufacture findings.",
       goal: renderBrief(brief),
       budgets: agent.maxIterations !== undefined ? { maxIterations: agent.maxIterations } : {},
+      ...(this.tracer !== undefined ? { tracer: this.tracer, traceId: options.correlation_id, actor: agent.id } : {}),
     });
 
     const status: SpokeResult["status"] =
@@ -127,6 +160,16 @@ export class Orchestrator {
       });
     }
     this.bus.send(validated.envelope);
+    this.tracer?.emit({
+      trace_id: options.correlation_id,
+      span_id: newSpanId(),
+      parent_span_id: null,
+      timestamp: nowIso(),
+      actor: this.id,
+      type: "handoff.received",
+      message_id: validated.envelope.message_id,
+      accepted: true,
+    });
 
     return {
       task_id: brief.task_id,
