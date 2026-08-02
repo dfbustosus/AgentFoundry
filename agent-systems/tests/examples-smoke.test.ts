@@ -28,29 +28,21 @@ const examples = readdirSync(EXAMPLES_DIR)
 
 describe("example smoke tests (offline, mocked model)", () => {
   it("discovers the expected example set", () => {
-    expect(examples.length).toBe(17);
+    expect(examples.length).toBe(18);
     expect(examples).toContain("01-prao-loop.ts");
-    expect(examples).toContain("18-evals.ts");
+    expect(examples).toContain("19-multi-turn-chatbot.ts");
   });
 
   for (const file of examples) {
-    it(
-      `${file} runs to completion with exit code 0`,
-      async () => {
-        const { stdout, stderr } = await execFileAsync(
-          "npx",
-          ["tsx", join(EXAMPLES_DIR, file)],
-          {
-            env: { ...process.env, AGENT_SYSTEMS_MOCK: "1" },
-            timeout: 60_000,
-            maxBuffer: 4 * 1024 * 1024,
-          },
-        );
-        expect(stdout.length).toBeGreaterThan(0);
-        expect(stdout).not.toContain("Example failed:");
-        expect(stderr).not.toContain("OPENAI_API_KEY");
-      },
-      90_000,
-    );
+    it(`${file} runs to completion with exit code 0`, async () => {
+      const { stdout, stderr } = await execFileAsync("npx", ["tsx", join(EXAMPLES_DIR, file)], {
+        env: { ...process.env, AGENT_SYSTEMS_MOCK: "1" },
+        timeout: 60_000,
+        maxBuffer: 4 * 1024 * 1024,
+      });
+      expect(stdout.length).toBeGreaterThan(0);
+      expect(stdout).not.toContain("Example failed:");
+      expect(stderr).not.toContain("OPENAI_API_KEY");
+    }, 90_000);
   }
 });
