@@ -30,6 +30,7 @@ src/
     ├── validation/             Enforcement layers: schema → authorization → budget → postcondition
     ├── cost/                   Per-agent token/USD accounting, multi-agent fit
     ├── trace/                  Typed span events + JSONL/console sinks — the audit artifact
+    ├── evals/                  Golden datasets, deterministic scorers, LLM judge, pass-rate reports
     └── mcp/                    MCP client wiring with least-privilege tool allowlists
 ```
 
@@ -70,13 +71,14 @@ Every topic this project set out to cover, and where it lives:
 | Tools | `02`, `14` | `core/tools/contract.ts` |
 | MCPs | `14` | `core/mcp/client.ts` |
 | Observability & audit trails | `16` | `core/trace/` |
+| Evaluating agent behavior (golden datasets, judges) | `18` | `core/evals/` |
 
 ## Quick start
 
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 127 tests, fully offline (mocked model)
+npm test                  # 138 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -98,7 +100,7 @@ Examples `10`, `11`, and `15` need no API key — start there if you just want t
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **127/127 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **138/138 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).
 
