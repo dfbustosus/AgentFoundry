@@ -9,6 +9,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Added
+
+- **npm packaging**: `tsconfig.build.json` compiles `src/` to NodeNext ESM with declarations; `exports` map, `files` whitelist, `sideEffects: false`, `publishConfig` with provenance; `npm run build` / `prepack` verified with a dry-run tarball and a plain-Node import smoke test. CI now verifies package emit on every push.
+- **Dependabot**: weekly grouped update PRs for npm (`/agent-systems`) and GitHub Actions, gated by CI.
+- **Release workflow**: pushing a `v*` tag creates the GitHub Release from the matching CHANGELOG section automatically.
+
 ### Fixed
 
 - `.env` files are now actually loaded: `loadDotEnv()` searches the project dir then the repo root, never overrides shell variables, and `loadEnv()` hydrates from it before validation. Previously, running examples with only a `.env` file failed validation despite a correct key. Verified with a live end-to-end run of example 01 against the real provider.
