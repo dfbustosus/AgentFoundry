@@ -97,6 +97,23 @@ Examples `10`, `11`, and `15` need no API key — start there if you just want t
 
 **Continuity** (`core/handoff/`, `core/state/`): typed envelopes with `correlation_id`/`causation_id` audit chains, dedup, expiry, and explicit accept/reject (silence is never acceptance). Checkpoints record completed side effects so `reconcile()` on resume never replays them.
 
+## Use as a package
+
+The library builds to plain ESM + type declarations:
+
+```bash
+npm run build        # emits dist/ (NodeNext ESM + .d.ts)
+npm pack --dry-run   # inspect the publishable tarball (dist, README, SPEC only)
+```
+
+Consumers import from the package root:
+
+```ts
+import { runPraoLoop, defineContractTool, Orchestrator, ApprovalGate, loadEnv } from "agent-systems-foundry";
+```
+
+The package is currently `private: true` (repo-only). Publishing is a deliberate one-way decision: flip `private`, then `npm publish` from CI with `--provenance` (already configured in `publishConfig`).
+
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
