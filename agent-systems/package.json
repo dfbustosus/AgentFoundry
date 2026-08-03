@@ -59,7 +59,7 @@
     "@ai-sdk/mcp": "2.0.20",
     "@ai-sdk/openai": "4.0.25",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "ai": "7.0.43",
+    "ai": "7.0.44",
     "zod": "4.4.3"
   },
   "devDependencies": {
