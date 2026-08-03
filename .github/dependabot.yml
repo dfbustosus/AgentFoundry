@@ -1,0 +1,38 @@
+# Dependency freshness as a routine PR, not a panic.
+# CI gates every update: lint + typecheck + tests on Node 20/22.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /agent-systems
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    groups:
+      ai-sdk:
+        patterns:
+          - "ai"
+          - "@ai-sdk/*"
+      dev-tools:
+        patterns:
+          - "typescript"
+          - "vitest"
+          - "tsx"
+          - "@biomejs/biome"
+          - "@types/node"
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
