@@ -1,13 +1,52 @@
 {
   "name": "agent-systems-foundry",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Reference architecture for agentic systems in TypeScript: PRAO loops, tool contracts, decomposition, orchestration, handoffs, memory, reliability, and enforcement — built on Vercel AI SDK Core.",
   "type": "module",
   "private": true,
+  "license": "MIT",
+  "author": "David BU <dfbustos@uninorte.edu.co>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfbustosus/AgentFoundry.git",
+    "directory": "agent-systems"
+  },
+  "keywords": [
+    "agents",
+    "llm",
+    "ai-sdk",
+    "orchestration",
+    "reliability",
+    "agentic-workflows",
+    "mcp",
+    "typescript"
+  ],
   "engines": {
     "node": ">=20"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SPEC.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepack": "npm run clean && npm run build",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "test": "vitest run",
@@ -25,7 +64,7 @@
   },
   "devDependencies": {
     "@ai-sdk/provider": "4.0.4",
-    "@biomejs/biome": "^2.5.6",
+    "@biomejs/biome": "2.5.6",
     "@types/node": "24.13.3",
     "tsx": "4.23.1",
     "typescript": "5.9.3",
