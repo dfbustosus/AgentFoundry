@@ -66,5 +66,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Build (verify package emit)
+        run: npm run build
+
       - name: Test (offline, mocked model)
         run: npm test
