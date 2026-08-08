@@ -10,6 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Fixed
+
+- Release automation now marks hyphenated versions (`-rc`, `-beta`, `-alpha`) as GitHub pre-releases instead of normal releases.
+
 ## [0.3.0-rc.1] - 2026-08-08
 
 ### Added
