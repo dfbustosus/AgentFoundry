@@ -78,7 +78,7 @@ Every topic this project set out to cover, and where it lives:
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 155 tests, fully offline (mocked model)
+npm test                  # 160 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -104,6 +104,7 @@ The library builds to plain ESM + type declarations:
 ```bash
 npm run build        # emits dist/ (NodeNext ESM + .d.ts)
 npm pack --dry-run   # inspect the publishable tarball (dist, README, SPEC only)
+npm run package:verify # publint + ATTW + clean consumer install/typecheck/runtime
 ```
 
 Consumers import from the package root:
@@ -112,12 +113,13 @@ Consumers import from the package root:
 import { runPraoLoop, defineContractTool, Orchestrator, ApprovalGate, loadEnv } from "agent-systems-foundry";
 ```
 
-The package is currently `private: true` (repo-only). Publishing is a deliberate one-way decision: flip `private`, then `npm publish` from CI with `--provenance` (already configured in `publishConfig`).
+The package is currently `private: true` and released as `v0.3.0-rc.1` on GitHub (not npm). Publishing is a deliberate one-way decision: flip `private`, then `npm publish` from CI with provenance (already configured in `publishConfig`).
 
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **155/155 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **160/160 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm run package:verify` — strict package metadata/type analysis plus a clean consumer install, TypeScript compile, and runtime execution.
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).
 
