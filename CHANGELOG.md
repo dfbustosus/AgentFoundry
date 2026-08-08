@@ -10,6 +10,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Added
+
+- **Public API compatibility gate**: API Extractor generates a committed contract report; CI fails on accidental export/type changes.
+- **Governed npm publication workflow**: GitHub Release events publish prereleases under `next` and stable versions under `latest` using OIDC, provenance, tag/version validation, a protected `npm-production` approval environment, and registry read-back verification. No npm token is stored.
+- **Release policy** (`RELEASING.md`): SemVer expectations, API-change review, one-time npm bootstrap, trusted-publisher configuration, and rollback procedure.
+
 ### Fixed
 
 - Release automation now marks hyphenated versions (`-rc`, `-beta`, `-alpha`) as GitHub pre-releases instead of normal releases.
