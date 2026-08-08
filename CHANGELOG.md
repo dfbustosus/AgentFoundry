@@ -3,21 +3,26 @@
 All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project is pre-1.0 and uses semantic versioning once published.
 
-[Unreleased]: https://github.com/dfbustosus/AgentFoundry/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dfbustosus/AgentFoundry/compare/v0.3.0-rc.1...HEAD
+[0.3.0-rc.1]: https://github.com/dfbustosus/AgentFoundry/compare/v0.2.0...v0.3.0-rc.1
 [0.2.0]: https://github.com/dfbustosus/AgentFoundry/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dfbustosus/AgentFoundry/releases/tag/v0.1.0
 
 ## [Unreleased]
 
+## [0.3.0-rc.1] - 2026-08-08
+
 ### Added
 
 - **npm packaging**: `tsconfig.build.json` compiles `src/` to NodeNext ESM with declarations; `exports` map, `files` whitelist, `sideEffects: false`, `publishConfig` with provenance; `npm run build` / `prepack` verified with a dry-run tarball and a plain-Node import smoke test. CI now verifies package emit on every push.
+- **Package consumer contract gate**: `npm pack` installs into a clean temporary TypeScript/Node project, typechecks public exports (including an intentional `@ts-expect-error` negative contract), and executes the compiled consumer. `publint --strict` and AreTheTypesWrong's ESM profile gate package metadata and declarations.
 - **Dependabot**: weekly grouped update PRs for npm (`/agent-systems`) and GitHub Actions, gated by CI.
 - **Release workflow**: pushing a `v*` tag creates the GitHub Release from the matching CHANGELOG section automatically.
 
 ### Fixed
 
 - `.env` files are now actually loaded: `loadDotEnv()` searches the project dir then the repo root, never overrides shell variables, and `loadEnv()` hydrates from it before validation. Previously, running examples with only a `.env` file failed validation despite a correct key. Verified with a live end-to-end run of example 01 against the real provider.
+- Cleared three dependency advisories (`fast-uri`, `hono`, `nanoid`) with bounded transitive updates; `npm audit` now reports zero production and development vulnerabilities.
 
 ## [0.2.0] - 2026-08-02
 
