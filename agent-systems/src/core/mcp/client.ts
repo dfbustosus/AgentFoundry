@@ -27,7 +27,7 @@ export interface McpServerHandle {
 }
 
 export interface ConnectOptions {
-  /** Stdio transport: command + args, e.g. { command: "npx", args: ["-y", "@modelcontextprotocol/server-everything"] }. */
+  /** Stdio transport: a command plus arguments, such as `npx -y` followed by an MCP server package name. */
   readonly stdio?: {
     readonly command: string;
     readonly args?: readonly string[];

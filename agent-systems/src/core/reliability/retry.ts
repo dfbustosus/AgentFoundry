@@ -14,7 +14,7 @@ import { classifyError } from "../errors/classify.js";
 import { type AgentError, EnvironmentError } from "../errors/taxonomy.js";
 
 export interface RetryPolicy {
-  /** Maximum total attempts, including the first. Must be >= 1. */
+  /** Maximum total attempts, including the first. Must be at least 1. */
   readonly maxAttempts: number;
   /** Base delay for attempt 1→2; doubles each attempt up to maxDelayMs. */
   readonly baseDelayMs: number;
