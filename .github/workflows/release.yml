@@ -32,4 +32,9 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file "${{ steps.notes.outputs.notes_path }}"
+        run: |
+          ARGS=("$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file "${{ steps.notes.outputs.notes_path }}")
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            ARGS+=(--prerelease)
+          fi
+          gh release create "${ARGS[@]}"
