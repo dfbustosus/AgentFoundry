@@ -59,6 +59,7 @@
     "lint": "biome check .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
     "test:watch": "vitest",
     "example": "tsx",
     "capstone": "tsx capstone/src/run.ts",
