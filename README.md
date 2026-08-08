@@ -1,6 +1,7 @@
 # AgentFoundry
 
 [![CI](https://github.com/dfbustosus/AgentFoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/dfbustosus/AgentFoundry/actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/dfbustosus/AgentFoundry?include_prereleases)](https://github.com/dfbustosus/AgentFoundry/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node.js ≥ 20](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -46,9 +47,9 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 │   ├── src/config/                   Application-layer environment validation (Zod)
 │   ├── examples/                     19 runnable examples (topic → example map in its README)
 │   ├── capstone/                     Dogfood app: support-ticket triage agent on the public API
-│   └── tests/                        155 tests, fully offline (mocked model)
+│   └── tests/                        160 tests, fully offline (mocked model)
 ├── .github/
-│   ├── workflows/ci.yml              Lint + typecheck + tests on Node 20/22
+│   ├── workflows/                    CI package gate + tag-triggered releases
 │   ├── ISSUE_TEMPLATE/               Bug report and feature request templates
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── CONTRIBUTING.md                   Dev setup, verification, commit conventions
@@ -63,7 +64,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ```bash
 cd agent-systems
 npm install
-npm test                                   # 155 tests, no network or API key
+npm test                                   # 160 tests, no network or API key
 npm run example -- examples/01-prao-loop.ts
 ```
 
@@ -102,8 +103,9 @@ Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-syst
 
 - `npm run typecheck` — strict TypeScript, exact-pinned dependencies.
 - `npm run lint` — Biome lint + format.
-- `npm test` — **155/155**, no network, no API key; includes end-to-end example smoke tests and capstone integration tests.
-- CI enforces all three on Node 20 and 22 for every push and PR.
+- `npm test` — **160/160**, no network, no API key; includes end-to-end example smoke tests and capstone integration tests.
+- `npm run package:verify` — `publint`, AreTheTypesWrong, and a clean consumer-project install/typecheck/runtime gate.
+- CI enforces lint, typecheck, tests, package build, and consumer verification on every push and PR.
 
 ## Contributing
 
