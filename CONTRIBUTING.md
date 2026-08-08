@@ -17,7 +17,8 @@ Node.js ≥ 20 is required (see `engines` in `agent-systems/package.json`).
 ```bash
 npm run typecheck   # strict TypeScript, zero errors
 npm run lint        # Biome lint + format
-npm test            # 155+ tests, fully offline — no API key needed
+npm test            # 160+ tests, fully offline — no API key needed
+npm run package:verify # publishable package + clean-consumer contract
 ```
 
 To run examples or the capstone offline: `AGENT_SYSTEMS_MOCK=1 npm run example -- examples/<file>`.
