@@ -5,3 +5,4 @@ dist/
 .checkpoints/
 .capstone-data/
 traces/
+temp/
