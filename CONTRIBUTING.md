@@ -37,4 +37,5 @@ To run examples or the capstone offline: `AGENT_SYSTEMS_MOCK=1 npm run example -
 - Fill in the PR template; link the issue it closes.
 - Keep diffs reviewable: < ~400 lines of semantic change is a good ceiling.
 - Update `CHANGELOG.md` under `[Unreleased]` and any README counts/tables your change affects.
+- Public API changes must include the reviewed report from `npm run api:update`; see `RELEASING.md`.
 - Expect review against, in order: correctness → security → failure handling → compatibility → performance → maintainability → style.

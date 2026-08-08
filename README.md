@@ -19,6 +19,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 - [Quick start](#quick-start)
 - [Environments](#environments)
 - [Documentation](#documentation)
+- [Package support](#package-support)
 - [Verification](#verification)
 - [Contributing](#contributing)
 - [Security](#security)
@@ -98,6 +99,15 @@ Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-syst
 | [`CHANGELOG.md`](./CHANGELOG.md) | Release notes |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Dev setup, verification, commit conventions |
 | [`SECURITY.md`](./SECURITY.md) | Vulnerability reporting and trust model |
+| [`RELEASING.md`](./RELEASING.md) | SemVer, API compatibility, trusted publishing, rollback |
+
+## Package support
+
+- Package: `agent-systems-foundry` (ESM-only)
+- Runtime: Node.js 20 and 22 are CI-tested; `engines` requires Node.js 20+
+- TypeScript: strict declarations generated with TypeScript 5.9
+- Current registry state: publication pending the one-time npm owner/trusted-publisher bootstrap
+- Pre-releases use npm dist-tag `next`; stable releases use `latest`
 
 ## Verification
 

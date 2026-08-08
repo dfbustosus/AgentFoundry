@@ -113,7 +113,7 @@ Consumers import from the package root:
 import { runPraoLoop, defineContractTool, Orchestrator, ApprovalGate, loadEnv } from "agent-systems-foundry";
 ```
 
-The package is currently `private: true` and released as `v0.3.0-rc.1` on GitHub (not npm). Publishing is a deliberate one-way decision: flip `private`, then `npm publish` from CI with provenance (already configured in `publishConfig`).
+The package is ESM-only, publication-enabled (`private: false`), and currently released as `v0.3.0-rc.1` on GitHub (not npm). Publishing is blocked only on the one-time npm owner/trusted-publisher bootstrap described in [`../RELEASING.md`](../RELEASING.md); all subsequent publishes use OIDC and provenance from the protected `npm-production` environment.
 
 ## Verification status
 

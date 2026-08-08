@@ -13,6 +13,7 @@ You can expect an acknowledgement within 72 hours and an honest assessment — i
 - **MCP servers**: example 14 connects to external MCP servers. MCP tool output is **untrusted data** — the library's enforcement layers, not the model, decide what actions may run. Enable only the servers you need, with least-privilege tool allowlists.
 - **LLM output**: treated as untrusted throughout. High-stakes paths are guarded by deterministic enforcement layers and human approval gates — by design, not by prompt.
 - **CI**: workflows run with read-only repository permissions, SHA-pinned actions, and no secrets.
+- **Publishing**: npm publication uses GitHub OIDC trusted publishing from a protected environment; no long-lived npm write token is stored. Registry artifacts carry provenance.
 
 ## Scope notes
 
