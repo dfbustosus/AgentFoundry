@@ -13,6 +13,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const consumerTypeScriptVersion = process.env.CONSUMER_TYPESCRIPT_VERSION ?? "5.9.3";
+
+if (!/^\d+\.\d+\.\d+$/.test(consumerTypeScriptVersion)) {
+  throw new Error(`CONSUMER_TYPESCRIPT_VERSION must be an exact version, received: ${consumerTypeScriptVersion}`);
+}
+
 const tempRoot = await mkdtemp(join(tmpdir(), "agent-systems-consumer-"));
 const packDir = join(tempRoot, "pack");
 const consumerDir = join(tempRoot, "consumer");
@@ -59,6 +65,7 @@ try {
         devDependencies: {
           "@types/json-schema": "7.0.15",
           "@types/node": "24.13.3",
+          typescript: consumerTypeScriptVersion,
         },
       },
       null,
@@ -145,8 +152,9 @@ console.log("consumer-contract: OK");
   console.log("[package] installing tarball in clean consumer");
   run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], consumerDir);
 
-  console.log("[package] typechecking public API from clean consumer");
-  const tsc = join(packageRoot, "node_modules", ".bin", process.platform === "win32" ? "tsc.cmd" : "tsc");
+  const tsc = join(consumerDir, "node_modules", ".bin", process.platform === "win32" ? "tsc.cmd" : "tsc");
+  const compiler = run(tsc, ["--version"], consumerDir, { capture: true }).trim();
+  console.log(`[package] typechecking public API from clean consumer with ${compiler}`);
   run(tsc, ["-p", "tsconfig.json"], consumerDir);
 
   console.log("[package] executing compiled consumer");
