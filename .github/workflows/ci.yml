@@ -11,7 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 # Least privilege: this workflow only reads the repository.
-# Tests run fully offline (mocked model) — no secrets are required or provided.
+# Tests use mocked models; package verification uses only npm registry access.
+# No model/provider secrets are required or provided.
 permissions:
   contents: read
 
@@ -71,3 +72,24 @@ jobs:
 
       - name: Test (offline, mocked model)
         run: npm test
+
+  package-contract:
+    name: Package contract (clean consumer)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: agent-systems/package-lock.json
+
+      - name: Install dependencies (locked)
+        run: npm ci
+
+      - name: Verify publishable package contract
+        run: npm run package:verify
