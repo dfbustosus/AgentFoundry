@@ -42,6 +42,9 @@ jobs:
       - name: Biome check
         run: npm run lint
 
+      - name: Dependency audit
+        run: npm audit --audit-level=moderate
+
   test:
     name: Typecheck + tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
@@ -49,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["20", "22"]
+        node: ["20", "22", "24"]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -93,3 +96,99 @@ jobs:
 
       - name: Verify publishable package contract
         run: npm run package:verify
+
+  package-compatibility:
+    name: Consumer compatibility (Node ${{ matrix.node }}, TS ${{ matrix.typescript }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+        typescript: ["5.8.3", "5.9.3"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: agent-systems/package-lock.json
+
+      - name: Install dependencies (locked)
+        run: npm ci
+
+      - name: Verify clean consumer compatibility
+        run: npm run package:consumer
+        env:
+          CONSUMER_TYPESCRIPT_VERSION: ${{ matrix.typescript }}
+
+  coverage:
+    name: Coverage gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: agent-systems/package-lock.json
+
+      - name: Install dependencies (locked)
+        run: npm ci
+
+      - name: Run tests with enforced coverage
+        run: npm run test:coverage
+
+      - name: Write coverage job summary
+        if: ${{ !cancelled() }}
+        run: node scripts/write-quality-summary.mjs coverage
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report-node-22
+          path: agent-systems/coverage/
+          if-no-files-found: warn
+          retention-days: 14
+
+  mutation:
+    name: Mutation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: agent-systems/package-lock.json
+
+      - name: Install dependencies (locked)
+        run: npm ci
+
+      - name: Run targeted mutation gate
+        run: npm run test:mutation
+
+      - name: Write mutation job summary
+        if: ${{ !cancelled() }}
+        run: node scripts/write-quality-summary.mjs mutation
+
+      - name: Upload mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-report-node-22
+          path: agent-systems/reports/mutation/
+          if-no-files-found: warn
+          retention-days: 14
