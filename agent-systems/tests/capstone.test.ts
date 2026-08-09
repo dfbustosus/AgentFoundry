@@ -69,7 +69,8 @@ describe("capstone tools", () => {
   });
 
   it("approval denial blocks the refund and leaves the ticket refund-pending", async () => {
-    const gate = new ApprovalGate(async () => ({
+    const gate = new ApprovalGate(async (request) => ({
+      requestId: request.id,
       approved: false,
       approver: "test-human",
       decidedAt: new Date().toISOString(),
@@ -89,7 +90,8 @@ describe("capstone tools", () => {
   });
 
   it("approved refund executes and satisfies the postcondition", async () => {
-    const gate = new ApprovalGate(async () => ({
+    const gate = new ApprovalGate(async (request) => ({
+      requestId: request.id,
       approved: true,
       approver: "test-human",
       decidedAt: new Date().toISOString(),
@@ -136,7 +138,8 @@ describe("capstone triage agent", () => {
   });
 
   it("gate denial surfaces as PolicyError, never swallowed", async () => {
-    const gate = new ApprovalGate(async () => ({
+    const gate = new ApprovalGate(async (request) => ({
+      requestId: request.id,
       approved: false,
       approver: "test",
       decidedAt: new Date().toISOString(),
