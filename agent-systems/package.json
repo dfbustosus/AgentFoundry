@@ -1,6 +1,6 @@
 {
   "name": "agent-systems-foundry",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0-rc.2",
   "description": "Reference architecture for agentic systems in TypeScript: PRAO loops, tool contracts, decomposition, orchestration, handoffs, memory, reliability, and enforcement — built on Vercel AI SDK Core.",
   "type": "module",
   "private": false,
@@ -22,7 +22,7 @@
     "typescript"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -69,6 +69,7 @@
     "@ai-sdk/mcp": "2.0.20",
     "@ai-sdk/openai": "4.0.25",
     "@modelcontextprotocol/sdk": "1.30.0",
+    "@types/json-schema": "7.0.15",
     "ai": "7.0.43",
     "zod": "4.4.3"
   },
