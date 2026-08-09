@@ -1,7 +1,7 @@
 # Spec-Driven Development Plan — Agent Systems Foundry
 
 **Status:** v1.0 (locked after clarification, 2026-07-30)
-**Stack (user-specified):** TypeScript on Node.js ≥ 20, Vercel AI SDK Core (`ai`), Zod for schemas, Vitest for tests, `@modelcontextprotocol/sdk` for MCP.
+**Stack (user-specified):** TypeScript on Node.js ≥ 22 (raised from ≥ 20 in rc.2: the pinned AI SDK packages themselves require Node ≥ 22, so a lower floor was an unverifiable claim), Vercel AI SDK Core (`ai`), Zod for schemas, Vitest for tests, `@modelcontextprotocol/sdk` for MCP.
 
 ---
 
@@ -49,7 +49,7 @@ The project teaches by *showing the machinery*: orchestration, loop control, and
 
 **Constraints**
 
-- C1. Language/runtime: TypeScript, Node.js ≥ 20, ESM, strict mode (`"strict": true`, no `any` leaks at public boundaries).
+- C1. Language/runtime: TypeScript, Node.js ≥ 22, ESM, strict mode (`"strict": true`, no `any` leaks at public boundaries).
 - C2. No Python anywhere in the deliverable (explicit user requirement overriding the original pydantic-ai preference).
 - C3. Examples require a live API key (`OPENAI_API_KEY` by default); **tests must not** — tests use the AI SDK's mock language model so CI runs offline.
 - C4. Zero placeholders: every committed file compiles and runs; anything not implementable in scope is listed as residual work, not stubbed.

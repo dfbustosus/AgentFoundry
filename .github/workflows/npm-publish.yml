@@ -66,6 +66,20 @@ jobs:
           npm test
           npm run package:verify
 
+      - name: Verify dependency audit
+        run: npm audit --audit-level=moderate
+
+      - name: Verify coverage gate
+        run: npm run test:coverage
+
+      - name: Verify mutation gate
+        run: npm run test:mutation
+
+      - name: Verify minimum TypeScript consumer compatibility
+        run: npm run package:consumer
+        env:
+          CONSUMER_TYPESCRIPT_VERSION: 5.8.3
+
       - name: Publish with OIDC and provenance
         run: npm publish --access public --tag "${{ steps.version.outputs.dist_tag }}"
 

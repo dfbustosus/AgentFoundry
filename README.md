@@ -3,7 +3,7 @@
 [![CI](https://github.com/dfbustosus/AgentFoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/dfbustosus/AgentFoundry/actions/workflows/ci.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/dfbustosus/AgentFoundry?include_prereleases)](https://github.com/dfbustosus/AgentFoundry/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Node.js ≥ 20](https://img.shields.io/badge/Node.js-%E2%89%A5%2020-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Node.js ≥ 22](https://img.shields.io/badge/Node.js-%E2%89%A5%2022-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Code style: Biome](https://img.shields.io/badge/code_style-Biome-60A5FA?logo=biome&logoColor=white)](https://biomejs.dev)
 [![Tests: offline](https://img.shields.io/badge/tests-offline%2C%20no%20API%20key-brightgreen)](#verification)
@@ -48,7 +48,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 │   ├── src/config/                   Application-layer environment validation (Zod)
 │   ├── examples/                     19 runnable examples (topic → example map in its README)
 │   ├── capstone/                     Dogfood app: support-ticket triage agent on the public API
-│   └── tests/                        160 tests, fully offline (mocked model)
+│   └── tests/                        210 tests, fully offline (mocked model)
 ├── .github/
 │   ├── workflows/                    CI package gate + tag-triggered releases
 │   ├── ISSUE_TEMPLATE/               Bug report and feature request templates
@@ -65,7 +65,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ```bash
 cd agent-systems
 npm install
-npm test                                   # 160 tests, no network or API key
+npm test                                   # 210 tests, no network or API key
 npm run example -- examples/01-prao-loop.ts
 ```
 
@@ -87,7 +87,7 @@ Runtime configuration is **typed and validated at load** (`agent-systems/src/con
 | `AGENT_SYSTEMS_MODEL` | e.g. `gpt-4o-mini` (default) | Model for examples and capstone |
 | `AGENT_SYSTEMS_MOCK` | `0` (default) · `1` | Offline deterministic mock; **forbidden in production** |
 
-Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-systems/.env` (or the repository root `.env`) for local development — the file is loaded automatically; shell variables always take precedence. Deployment environments (GitHub Environments with protection rules) become relevant only when a release/deploy workflow exists — the config layer already enforces the development/test/production distinction in code.
+Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-systems/.env` (or the repository root `.env`) for local development — the file is loaded automatically; shell variables always take precedence. npm publication uses the protected `npm-production` GitHub Environment; runtime configuration remains enforced by the typed config layer.
 
 ## Documentation
 
@@ -104,8 +104,8 @@ Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-syst
 ## Package support
 
 - Package: `agent-systems-foundry` (ESM-only)
-- Runtime: Node.js 20 and 22 are CI-tested; `engines` requires Node.js 20+
-- TypeScript: strict declarations generated with TypeScript 5.9
+- Runtime: Node.js 22 and 24 are CI-tested; `engines` requires Node.js 22+ (matching the AI SDK's own engine floor)
+- TypeScript: clean consumers are CI-tested with 5.8.3 and 5.9.3; declarations are generated with 5.9.3
 - Current registry state: publication pending the one-time npm owner/trusted-publisher bootstrap
 - Pre-releases use npm dist-tag `next`; stable releases use `latest`
 
@@ -113,9 +113,11 @@ Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-syst
 
 - `npm run typecheck` — strict TypeScript, exact-pinned dependencies.
 - `npm run lint` — Biome lint + format.
-- `npm test` — **160/160**, no network, no API key; includes end-to-end example smoke tests and capstone integration tests.
+- `npm test` — **210/210**, no network, no API key; includes deterministic property tests, safety-contract tests, end-to-end example smoke tests, and capstone integration tests.
+- `npm run test:coverage` — V8 coverage with enforced 90% statements, 78% branches, 90% functions, and 90% lines thresholds.
+- `npm run test:mutation` — targeted mutation testing with a 90% minimum score.
 - `npm run package:verify` — `publint`, AreTheTypesWrong, and a clean consumer-project install/typecheck/runtime gate.
-- CI enforces lint, typecheck, tests, package build, and consumer verification on every push and PR.
+- CI enforces lint/audit, typecheck/tests on Node.js 22/24, four Node/TypeScript clean-consumer combinations, package/API contracts, coverage, and mutation testing on every push and PR.
 
 ## Contributing
 

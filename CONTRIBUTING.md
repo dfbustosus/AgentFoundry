@@ -10,14 +10,16 @@ cd AgentFoundry/agent-systems
 npm install
 ```
 
-Node.js ≥ 20 is required (see `engines` in `agent-systems/package.json`).
+Node.js ≥ 22 is required (see `engines` in `agent-systems/package.json`; the AI SDK itself requires ≥ 22).
 
-## Before you push (all three are enforced by CI)
+## Before you push (all gates are enforced by CI)
 
 ```bash
 npm run typecheck   # strict TypeScript, zero errors
 npm run lint        # Biome lint + format
-npm test            # 160+ tests, fully offline — no API key needed
+npm test            # 210+ tests, fully offline — no API key needed
+npm run test:coverage # enforce statement/branch/function/line floors
+npm run test:mutation # enforce the targeted 90% mutation score
 npm run package:verify # publishable package + clean-consumer contract
 ```
 

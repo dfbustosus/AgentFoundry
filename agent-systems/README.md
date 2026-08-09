@@ -78,7 +78,7 @@ Every topic this project set out to cover, and where it lives:
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 160 tests, fully offline (mocked model)
+npm test                  # 210 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -113,12 +113,14 @@ Consumers import from the package root:
 import { runPraoLoop, defineContractTool, Orchestrator, ApprovalGate, loadEnv } from "agent-systems-foundry";
 ```
 
-The package is ESM-only, publication-enabled (`private: false`), and currently released as `v0.3.0-rc.1` on GitHub (not npm). Publishing is blocked only on the one-time npm owner/trusted-publisher bootstrap described in [`../RELEASING.md`](../RELEASING.md); all subsequent publishes use OIDC and provenance from the protected `npm-production` environment.
+The package is ESM-only, publication-enabled (`private: false`), and released as `v0.3.0-rc.2` on GitHub (not npm). Clean consumers are verified across Node.js 22/24 and TypeScript 5.8.3/5.9.3. Publishing is blocked only on the one-time npm owner/trusted-publisher bootstrap described in [`../RELEASING.md`](../RELEASING.md); all subsequent publishes use OIDC and provenance from the protected `npm-production` environment.
 
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **160/160 green**, no network, no API key. This includes `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **210/210 green**, no network, no API key. This includes seeded property invariants, mutation-focused safety contracts, and `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm run test:coverage` — V8 coverage gated at 90% statements, 78% branches, 90% functions, and 90% lines.
+- `npm run test:mutation` — 457 targeted mutants with a 90% minimum mutation score (91.68% at this release).
 - `npm run package:verify` — strict package metadata/type analysis plus a clean consumer install, TypeScript compile, and runtime execution.
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).
