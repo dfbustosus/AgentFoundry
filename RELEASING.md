@@ -26,12 +26,16 @@ npm audit
 npm run lint
 npm run typecheck
 npm test
+npm run test:coverage
+npm run test:mutation
 npm run package:verify
 ```
 
 `package:verify` checks the committed API report, runs `publint` and
 AreTheTypesWrong, packs the real tarball, installs it into a clean temporary
-consumer, compiles the public API under strict TypeScript, and executes it.
+consumer, compiles the public API under strict TypeScript, and executes it. CI
+also repeats that clean-consumer proof across Node.js 22/24 and TypeScript
+5.8.3/5.9.3, retaining coverage and mutation reports as artifacts.
 
 ## Intentional public API changes
 
