@@ -63,7 +63,6 @@ try {
           zod: "4.4.3",
         },
         devDependencies: {
-          "@types/json-schema": "7.0.15",
           "@types/node": "24.13.3",
           typescript: consumerTypeScriptVersion,
         },
@@ -132,7 +131,8 @@ const graph = new TaskGraph().add({
 const graphResult = await executeGraph(graph);
 if (graphResult.outputs.answer !== 42) throw new Error("TaskGraph runtime contract failed");
 
-const approval = new ApprovalGate(async () => ({
+const approval = new ApprovalGate(async (request) => ({
+  requestId: request.id,
   approved: true,
   approver: "consumer-test",
   decidedAt: new Date().toISOString(),
