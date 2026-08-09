@@ -50,9 +50,9 @@ async function approvalFailure(
 ): Promise<{ error: PolicyError; request: ApprovalRequest }> {
   let request: ApprovalRequest | undefined;
   const gate = new ApprovalGate(
-    async (candidate) => {
+    async (candidate, signal) => {
       request = candidate;
-      return handler(candidate);
+      return handler(candidate, signal);
     },
     { timeoutMs },
   );
@@ -534,15 +534,15 @@ describe("tool enforcement and observability contracts", () => {
 
 describe("approval boundaries and audit evidence", () => {
   it("preserves configured trace identity, actor, span, expiry, and latency", async () => {
-    vi.spyOn(Date, "now").mockReturnValueOnce(1_000).mockReturnValueOnce(1_025);
+    vi.spyOn(Date, "now").mockReturnValueOnce(1_000).mockReturnValue(1_025);
     const { tracer, events } = collectTracer();
     let observed: ApprovalRequest | undefined;
     const handler = vi.fn(async (request: ApprovalRequest) => {
       observed = request;
-      return { approved: true as const, approver: "reviewer", decidedAt: request.requestedAt };
+      return { requestId: request.id, approved: true as const, approver: "reviewer", decidedAt: request.requestedAt };
     });
     const gate = new ApprovalGate(handler, {
-      timeoutMs: 500,
+      timeoutMs: 60_000,
       tracer,
       traceId: "trace-approval",
       actor: "approval-control",
@@ -558,7 +558,7 @@ describe("approval boundaries and audit evidence", () => {
     expect(handler).toHaveBeenCalledOnce();
     expect(observed).toBeDefined();
     if (observed === undefined) throw new Error("approval request was not observed");
-    expect(Date.parse(observed.expiresAt) - Date.parse(observed.requestedAt)).toBe(500);
+    expect(Date.parse(observed.expiresAt) - Date.parse(observed.requestedAt)).toBe(60_000);
     expect(events.map((event) => event.type)).toStrictEqual(["approval.requested", "approval.decided"]);
     expect(events[0]).toMatchObject({
       trace_id: "trace-approval",
@@ -582,11 +582,17 @@ describe("approval boundaries and audit evidence", () => {
     vi.spyOn(Date, "now").mockReturnValue(5_000);
     const action = { kind: "payment.send", actor: "payments-agent", payload: { amount: 1_001 } };
     const atBoundary = new ApprovalGate(
-      async (request) => ({ approved: true, approver: "reviewer", decidedAt: request.expiresAt }),
+      async (request) => ({
+        requestId: request.id,
+        approved: true,
+        approver: "reviewer",
+        decidedAt: request.expiresAt,
+      }),
       { timeoutMs: 500 },
     );
     const afterBoundary = new ApprovalGate(
       async (request) => ({
+        requestId: request.id,
         approved: true,
         approver: "reviewer",
         decidedAt: new Date(Date.parse(request.expiresAt) + 1).toISOString(),
@@ -623,6 +629,7 @@ describe("approval boundaries and audit evidence", () => {
     });
 
     const expired = await approvalFailure(async (request) => ({
+      requestId: request.id,
       approved: true,
       approver: "reviewer",
       decidedAt: new Date(Date.parse(request.expiresAt) + 1).toISOString(),
@@ -633,6 +640,7 @@ describe("approval boundaries and audit evidence", () => {
     });
 
     const denied = await approvalFailure(async (request) => ({
+      requestId: request.id,
       approved: false,
       approver: "reviewer",
       decidedAt: request.requestedAt,
