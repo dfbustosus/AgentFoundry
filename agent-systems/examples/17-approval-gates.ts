@@ -44,13 +44,14 @@ function cliApprovalHandler(timeoutMs: number): ApprovalHandler {
       const decidedAt = new Date().toISOString();
       if (answer === null || answer.trim().toLowerCase() !== "y") {
         return {
+          requestId: request.id,
           approved: false,
           approver: "terminal-user",
           decidedAt,
           reason: answer === null ? "timed out" : "declined",
         };
       }
-      return { approved: true, approver: "terminal-user", decidedAt };
+      return { requestId: request.id, approved: true, approver: "terminal-user", decidedAt };
     } finally {
       rl.close();
     }
@@ -60,12 +61,18 @@ function cliApprovalHandler(timeoutMs: number): ApprovalHandler {
 /** Scripted handler for offline/CI runs: approves the first request, denies the second. */
 function scriptedHandler(): ApprovalHandler {
   let calls = 0;
-  return async () => {
+  return async (request) => {
     calls += 1;
     const decidedAt = new Date().toISOString();
     return calls === 1
-      ? { approved: true, approver: "scripted-human", decidedAt }
-      : { approved: false, approver: "scripted-human", decidedAt, reason: "amount too large for today" };
+      ? { requestId: request.id, approved: true, approver: "scripted-human", decidedAt }
+      : {
+          requestId: request.id,
+          approved: false,
+          approver: "scripted-human",
+          decidedAt,
+          reason: "amount too large for today",
+        };
   };
 }
 
