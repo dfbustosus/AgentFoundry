@@ -76,12 +76,15 @@ async function mutationSummary() {
   const survived = statuses.Survived ?? 0;
   const noCoverage = statuses.NoCoverage ?? 0;
   const errors = (statuses.CompileError ?? 0) + (statuses.RuntimeError ?? 0);
-  const scored = killed + timedOut + survived + noCoverage + errors;
-  const covered = scored - noCoverage;
-  if (scored === 0 || covered === 0) throw new Error("Mutation report contained no scored mutants");
-
+  const ignored = statuses.Ignored ?? 0;
+  const pending = statuses.Pending ?? 0;
+  // Mirror mutation-testing-metrics: invalid mutants are excluded from scores.
   const detected = killed + timedOut;
-  const mutationScore = (detected / scored) * 100;
+  const valid = detected + survived + noCoverage;
+  const covered = detected + survived;
+  if (valid === 0 || covered === 0) throw new Error("Mutation report contained no scored mutants");
+
+  const mutationScore = (detected / valid) * 100;
   const coveredScore = (detected / covered) * 100;
   const { default: strykerConfig } = await import("../stryker.config.mjs");
   const breakThreshold = strykerConfig.thresholds?.break;
@@ -103,8 +106,10 @@ async function mutationSummary() {
       `| Timed out | ${String(timedOut)} |`,
       `| Survived | ${String(survived)} |`,
       `| No coverage | ${String(noCoverage)} |`,
-      `| Errors | ${String(errors)} |`,
-      `| Total | ${String(scored)} |`,
+      `| Invalid (compile/runtime errors) | ${String(errors)} |`,
+      `| Ignored | ${String(ignored)} |`,
+      `| Pending | ${String(pending)} |`,
+      `| Scored (valid) | ${String(valid)} |`,
       "",
     ].join("\n"),
   };
