@@ -29,8 +29,14 @@ function cliApprover(timeoutMs: number): ApprovalHandler {
       ]);
       const decidedAt = new Date().toISOString();
       return answer?.trim().toLowerCase() === "y"
-        ? { approved: true, approver: "on-call-human", decidedAt }
-        : { approved: false, approver: "on-call-human", decidedAt, reason: answer === null ? "timed out" : "declined" };
+        ? { requestId: request.id, approved: true, approver: "on-call-human", decidedAt }
+        : {
+            requestId: request.id,
+            approved: false,
+            approver: "on-call-human",
+            decidedAt,
+            reason: answer === null ? "timed out" : "declined",
+          };
     } finally {
       rl.close();
     }
@@ -42,8 +48,14 @@ const scriptedApprover: ApprovalHandler = async (request) => {
   const amount = (request.action.payload as { amountUsd: number }).amountUsd;
   const decidedAt = new Date().toISOString();
   return amount <= 50
-    ? { approved: true, approver: "scripted-approver", decidedAt }
-    : { approved: false, approver: "scripted-approver", decidedAt, reason: `$${amount} needs a senior approver` };
+    ? { requestId: request.id, approved: true, approver: "scripted-approver", decidedAt }
+    : {
+        requestId: request.id,
+        approved: false,
+        approver: "scripted-approver",
+        decidedAt,
+        reason: `$${amount} needs a senior approver`,
+      };
 };
 
 async function main(): Promise<void> {
