@@ -3,22 +3,39 @@
 All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project is pre-1.0 and uses semantic versioning once published.
 
-[Unreleased]: https://github.com/dfbustosus/AgentFoundry/compare/v0.3.0-rc.1...HEAD
+[Unreleased]: https://github.com/dfbustosus/AgentFoundry/compare/v0.3.0-rc.2...HEAD
+[0.3.0-rc.2]: https://github.com/dfbustosus/AgentFoundry/compare/v0.3.0-rc.1...v0.3.0-rc.2
 [0.3.0-rc.1]: https://github.com/dfbustosus/AgentFoundry/compare/v0.2.0...v0.3.0-rc.1
 [0.2.0]: https://github.com/dfbustosus/AgentFoundry/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dfbustosus/AgentFoundry/releases/tag/v0.1.0
 
 ## [Unreleased]
 
+## [0.3.0-rc.2] - 2026-08-08
+
 ### Added
 
 - **Public API compatibility gate**: API Extractor generates a committed contract report; CI fails on accidental export/type changes.
 - **Governed npm publication workflow**: GitHub Release events publish prereleases under `next` and stable versions under `latest` using OIDC, provenance, tag/version validation, a protected `npm-production` approval environment, and registry read-back verification. No npm token is stored.
 - **Release policy** (`RELEASING.md`): SemVer expectations, API-change review, one-time npm bootstrap, trusted-publisher configuration, and rollback procedure.
+- **Coverage gate**: V8 coverage now fails below 90% statements, 78% branches, 90% functions, or 90% lines. HTML, LCOV, and JSON reports are retained as CI artifacts and summarized in the job report.
+- **Property-based verification**: six seeded, bounded `fast-check` properties exercise DAG ordering and cycle rejection, retry budgets, cost aggregation, checkpoint replay safety, and handoff round-trips.
+- **Mutation gate**: Stryker mutates 457 cases across reliability, session recovery, tool contracts, approvals, and deterministic enforcement. Twenty-five focused contract tests lifted the score from 65.21% to 91.68%; CI enforces a 90% floor and retains HTML/JSON reports.
+- **Consumer compatibility matrix**: the packed ESM artifact is installed, typechecked, and executed across Node.js 22 and 24 with TypeScript 5.8.3 and 5.9.3.
+- **Dependency audit gate**: CI fails on moderate-or-higher npm advisories.
+
+### Changed
+
+- **Approval gates enforce a real deadline**: `ApprovalGate` now races the handler against an actual timer, aborts cooperative handlers via `AbortSignal`, runtime-validates decisions with Zod, rejects late arrivals even with backdated timestamps, and requires every `ApprovalDecision` to carry the originating `requestId`. **Migration**: handlers must return `requestId: request.id` in each decision and may accept the new second `AbortSignal` parameter; older one-argument handlers remain assignable but decisions without a matching `requestId` fail closed.
+- **Runtime floor raised to Node.js 22**: the pinned AI SDK packages require Node ≥ 22, so the previous `>=20` engine claim was unverifiable. CI now tests Node 22 and 24.
+- **Publication workflow re-runs every gate**: `npm-publish.yml` now enforces audit, coverage, mutation, and minimum-TypeScript consumer compatibility before publishing, matching `RELEASING.md`.
 
 ### Fixed
 
 - Release automation now marks hyphenated versions (`-rc`, `-beta`, `-alpha`) as GitHub pre-releases instead of normal releases.
+- Patched Stryker's dev-only transitive `qs` advisory with a bounded `6.15.3` override; `npm audit` reports zero vulnerabilities.
+- Strict consumers no longer need a synthetic `@types/json-schema` install: it is now a declared runtime dependency because `@ai-sdk/provider`'s published declarations import it.
+- Mutation job summaries now compute scores with Stryker's valid-mutant formula instead of diverging when invalid mutants occur.
 
 ## [0.3.0-rc.1] - 2026-08-08
 
