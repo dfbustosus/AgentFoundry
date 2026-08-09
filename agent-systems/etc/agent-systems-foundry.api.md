@@ -71,10 +71,12 @@ export type AppEnv = z.infer<typeof envSchema>;
 
 // @public (undocumented)
 export type ApprovalDecision = {
+    readonly requestId: string;
     readonly approved: true;
     readonly approver: string;
     readonly decidedAt: string;
 } | {
+    readonly requestId: string;
     readonly approved: false;
     readonly approver: string;
     readonly decidedAt: string;
@@ -98,7 +100,7 @@ export interface ApprovalGateOptions {
 }
 
 // @public
-export type ApprovalHandler = (request: ApprovalRequest) => Promise<ApprovalDecision | null>;
+export type ApprovalHandler = (request: ApprovalRequest, signal: AbortSignal) => Promise<ApprovalDecision | null>;
 
 // @public
 export function approvalLayer(gate: ApprovalGate, policy: ApprovalPolicy): EnforcementLayer;
