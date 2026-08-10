@@ -28,8 +28,8 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ## Features
 
 - **PRAO agent loops** — Perception–Reasoning–Action–Observation with typed observations, explicit stop/iterate/recover/clarify/escalate transitions, and hard budgets enforced in code.
-- **Tool contracts** — typed input/output schemas, side-effect and idempotency declarations, authorization gates, timeouts, and postconditions.
-- **Error taxonomy & reliability** — every failure classified (tool / reasoning / environment / policy) before recovery; bounded retry with backoff, jitter, and idempotency guards; fallback chains with labeled graceful degradation.
+- **Tool contracts** — typed input/output schemas, side-effect and idempotency declarations, authorization gates, cooperative cancellation, phase-aware timeouts, and postconditions.
+- **Error taxonomy & reliability** — every failure classified (tool / reasoning / environment / policy) before recovery; bounded retry with attempt and elapsed-time budgets, upstream cancellation, backoff, jitter, and idempotency guards; fallback chains with labeled graceful degradation.
 - **Decomposition & orchestration** — validated task DAGs (hierarchical, sequential, parallel), hub-and-spoke orchestrator with verified delegation, schema-validated pipelines, deterministic fan-in conflict resolution, topology selection.
 - **Handoffs & state** — typed agent-to-agent envelopes (Zod) with audit chains, dedup, and expiry; crash-safe session checkpoints with reconcile-on-resume.
 - **Enforcement layers** — schema → authorization → budget → human approval → postcondition, in deterministic code. High-stakes actions stop and wait for a real human decision, failing closed when none arrives.
@@ -48,7 +48,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 │   ├── src/config/                   Application-layer environment validation (Zod)
 │   ├── examples/                     19 runnable examples (topic → example map in its README)
 │   ├── capstone/                     Dogfood app: support-ticket triage agent on the public API
-│   └── tests/                        210 tests, fully offline (mocked model)
+│   └── tests/                        297 tests, fully offline (mocked model)
 ├── .github/
 │   ├── workflows/                    CI package gate + tag-triggered releases
 │   ├── ISSUE_TEMPLATE/               Bug report and feature request templates
@@ -65,7 +65,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ```bash
 cd agent-systems
 npm install
-npm test                                   # 210 tests, no network or API key
+npm test                                   # 297 tests, no network or API key
 npm run example -- examples/01-prao-loop.ts
 ```
 
@@ -113,7 +113,7 @@ Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-syst
 
 - `npm run typecheck` — strict TypeScript, exact-pinned dependencies.
 - `npm run lint` — Biome lint + format.
-- `npm test` — **210/210**, no network, no API key; includes deterministic property tests, safety-contract tests, end-to-end example smoke tests, and capstone integration tests.
+- `npm test` — **297/297**, no network, no API key; includes deterministic property tests, cancellation/deadline contracts, safety-contract tests, end-to-end example smoke tests, and capstone integration tests.
 - `npm run test:coverage` — V8 coverage with enforced 90% statements, 78% branches, 90% functions, and 90% lines thresholds.
 - `npm run test:mutation` — targeted mutation testing with a 90% minimum score.
 - `npm run package:verify` — `publint`, AreTheTypesWrong, and a clean consumer-project install/typecheck/runtime gate.
