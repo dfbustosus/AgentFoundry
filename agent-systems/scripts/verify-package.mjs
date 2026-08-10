@@ -100,10 +100,25 @@ try {
   defineContractTool,
   executeGraph,
   loadEnv,
+  RetryAbortedError,
+  withRetry,
+  type ContractToolOptions,
   type LoopTransition,
+  type RetryPolicy,
+  type RetrySleep,
   type Tool,
 } from "agent-systems-foundry";
 import { z } from "zod";
+
+const toolOptions: ContractToolOptions = { context: { agentId: "consumer", writeScopes: [] } };
+const retryPolicy: RetryPolicy = {
+  maxAttempts: 2,
+  baseDelayMs: 10,
+  maxDelayMs: 100,
+  maxElapsedMs: 1_000,
+  sideEffectSafe: true,
+};
+const retrySleep: RetrySleep = async () => {};
 
 const double = defineContractTool<{ n: number }, { result: number }>({
   name: "double",
@@ -112,11 +127,30 @@ const double = defineContractTool<{ n: number }, { result: number }>({
   output: z.object({ result: z.number() }),
   sideEffect: "read-only",
   idempotent: true,
-  execute: async ({ n }) => ({ result: n * 2 }),
-}, { context: { agentId: "consumer", writeScopes: [] } });
+  execute: async ({ n }, _context, signal) => {
+    if (!(signal instanceof AbortSignal)) throw new Error("Tool execution signal missing");
+    return { result: n * 2 };
+  },
+}, toolOptions);
 
 const typedTool: Tool<{ n: number }, { result: number }> = double;
-void typedTool;
+const executePackagedTool = (typedTool as {
+  execute?: (input: { n: number }, options: unknown) => Promise<{ result: number }>;
+}).execute;
+if (executePackagedTool === undefined) throw new Error("Packaged tool execute export missing");
+const doubled = await executePackagedTool({ n: 21 }, { toolCallId: "consumer-tool", messages: [] });
+if (doubled.result !== 42) throw new Error("Packaged tool runtime contract failed");
+
+const retried = await withRetry(
+  "consumer-retry",
+  async ({ signal }) => {
+    if (!(signal instanceof AbortSignal)) throw new Error("Retry signal missing");
+    return 7;
+  },
+  retryPolicy,
+  retrySleep,
+);
+if (retried.value !== 7 || retried.attempts !== 1) throw new Error("Packaged retry runtime contract failed");
 
 // @ts-expect-error — public union must reject unknown transitions.
 const invalidTransition: LoopTransition = "keep-going";
@@ -144,6 +178,7 @@ await approval.requireApproval(
 
 const env = loadEnv({ AGENT_SYSTEMS_MOCK: "1" });
 if (env.AGENT_SYSTEMS_MODEL !== "gpt-4o-mini") throw new Error("Config runtime contract failed");
+if (typeof RetryAbortedError !== "function") throw new Error("RetryAbortedError runtime export missing");
 
 console.log("consumer-contract: OK");
 `,

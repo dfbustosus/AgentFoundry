@@ -69,7 +69,7 @@ The project teaches by *showing the machinery*: orchestration, loop control, and
 **Performance/logical constraints**
 
 - P1. Fan-out concurrency must be bounded (default limit, configurable) to respect rate limits and cost budgets.
-- P2. Every loop and retry has a hard budget (iterations, elapsed time, attempts); nothing runs unbounded.
+- P2. Every loop has iteration and elapsed-time bounds; every retry has a hard attempt bound and supports an explicit monotonic `maxElapsedMs` budget across attempts and backoffs. Reliability-critical examples configure both.
 - P3. All mutating tool paths must be idempotent or explicitly marked non-idempotent and non-retryable.
 
 ## 4. Prior Decisions (locked)
@@ -89,8 +89,8 @@ The project teaches by *showing the machinery*: orchestration, loop control, and
 Workstreams (hierarchical decomposition; each leaf independently verifiable):
 
 - **WS0 — Foundations**: project config, dependency install, AI SDK v7 API verification against installed types.
-- **WS1 — Errors & reliability** (`core/errors`, `core/reliability`): taxonomy, classification, retry w/ backoff+jitter+idempotency, fallback chain with degradation labels.
-- **WS2 — Loop & tools** (`core/loop`, `core/tools`): PRAO loop runner with budgets and transition policy; tool contract wrapper with schema validation, side-effect metadata, postcondition checks.
+- **WS1 — Errors & reliability** (`core/errors`, `core/reliability`): taxonomy, classification, retry with attempt/elapsed budgets, cancellation, backoff+jitter+idempotency, and fallback chains with degradation labels.
+- **WS2 — Loop & tools** (`core/loop`, `core/tools`): PRAO loop runner with budgets and transition policy; abortable tool contract wrapper with schema validation, side-effect metadata, phase-aware timeout classification, and postcondition checks.
 - **WS3 — Decomposition** (`core/decomposition`): typed task DAG, hierarchical/sequential/parallel constructors, topological executor with bounded concurrency.
 - **WS4 — Orchestration & handoffs** (`core/orchestration`, `core/handoff`): hub-and-spoke orchestrator, pipeline, fan-out/fan-in with barrier, subagent contracts with authority/write-scope isolation, topology decision table; handoff envelope schema + send/ack/resume protocol.
 - **WS5 — State & memory** (`core/state`): state-lifetime separation, `MemoryStore` interface + in-memory and file-backed implementations, session checkpoints with reconcile-on-resume.
@@ -107,14 +107,14 @@ Critical path: WS0 → WS1/WS2 → WS3 → WS4 → WS8/WS9 → WS10. WS5–WS7 f
 **Acceptance criteria**
 
 - V1. `npm run typecheck` passes with zero errors under strict TypeScript.
-- V2. `npm test` passes with **no network access and no API key** (mocked model), covering: error classification, retry budgets (incl. non-retryable refusal), fallback degradation order, loop stop/iterate/escalate transitions, tool postcondition rejection, DAG topological execution with a failing branch, fan-in conflict resolution, handoff envelope round-trip + schema rejection of malformed envelopes, checkpoint save/resume with stale-message detection, enforcement layer blocking an unauthorized action, cost accumulation.
+- V2. `npm test` passes with **no network access and no API key** (mocked model), covering: error classification, retry attempt/elapsed budgets and cancellation, abortable tool deadlines with side-effect-aware metadata, fallback degradation order, loop stop/iterate/escalate transitions, tool postcondition rejection, DAG topological execution with a failing branch, fan-in conflict resolution, handoff envelope round-trip + schema rejection of malformed envelopes, checkpoint save/resume with stale-message detection, enforcement layer blocking an unauthorized action, cost accumulation.
 - V3. Every topic in the user's list maps to at least one example file **and** one core module, verified by the topic map in `README.md`.
 - V4. No file contains placeholder markers; every example has a complete `main()` and runs via `npm run example -- <name>` given a valid key.
-- V5. Each retry/loop/fan-out path demonstrates a hard bound (attempt/iteration/concurrency limit) in code and in tests.
+- V5. Each retry/loop/fan-out path demonstrates hard attempt/elapsed/iteration/concurrency bounds and cleanup behavior in code and tests.
 
 **Edge cases to test**
 
-- E1. Tool throws after a side effect → classified non-retryable unless idempotency key present.
+- E1. Tool times out after a possible write → its signal aborts, but the effect remains `unknown`; non-idempotent writes are non-retryable while idempotent writes may be reconciled and retried.
 - E2. Identical failure repeated → stall detection stops the loop before iteration budget exhaustion.
 - E3. Fallback chain exhausts → fails closed with a typed `DegradedError`, never silently returns weaker data unlabeled.
 - E4. Parallel branch fails mid-fan-out → barrier records partial results; fan-in policy decides proceed/abort explicitly.

@@ -11,6 +11,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Added
+
+- **Cancellation-safe tool contracts**: authorization and execution callbacks receive a composed `AbortSignal`; contract deadlines and upstream cancellation settle non-cooperative work promptly, consume late rejections, clean up timers/listeners, and classify timeout retryability from the tool's side-effect and idempotency declarations.
+- **Elapsed retry budgets**: `RetryPolicy.maxElapsedMs` and upstream `signal` bound attempts and backoffs under one monotonic deadline. `RetryAbortedError` distinguishes elapsed-budget exhaustion from caller cancellation, and every attempt receives the same cooperative signal.
+
+### Changed
+
+- The retry/fallback example now demonstrates both attempt and elapsed-time budgets. Cancellation bounds caller latency but cannot undo an external side effect from non-cooperative work; timed-out writes therefore retain conservative `unknown` side-effect metadata.
+
+### Fixed
+
+- Retry exhaustion and cancellation now aggregate side-effect evidence monotonically: any known occurrence remains `occurred`, an uncertain or in-flight attempt remains `unknown`, and cancellation during a fully side-effect-free backoff remains `none`.
+- Retry policies reject `maxDelayMs` values above Node.js's maximum timer delay instead of allowing the runtime to collapse an oversized backoff to 1ms.
+
 ## [0.3.0-rc.2] - 2026-08-08
 
 ### Added

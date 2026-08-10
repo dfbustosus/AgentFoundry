@@ -291,6 +291,14 @@ export function contains(): Scorer;
 export function contractSummary<I, O>(contract: ToolContract<I, O>): string;
 
 // @public (undocumented)
+export interface ContractToolOptions {
+    // (undocumented)
+    readonly context: ToolContext;
+    readonly traceId?: string;
+    readonly tracer?: Tracer;
+}
+
+// @public (undocumented)
 export interface CostReport {
     readonly hasUnpricedModels: boolean;
     // (undocumented)
@@ -329,8 +337,6 @@ export function createEnvelope(parts: EnvelopeParts): HandoffEnvelope;
 // @public (undocumented)
 export const DEFAULT_BUDGETS: LoopBudgets;
 
-// Warning: (ae-forgotten-export) The symbol "ContractToolOptions" needs to be exported by the entry point index.d.ts
-//
 // @public
 export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: ContractToolOptions): Tool<I, O>;
 
@@ -983,13 +989,21 @@ export interface ResumePlan {
     readonly stale: readonly TaskLedgerEntry[];
 }
 
+// @public
+export class RetryAbortedError extends EnvironmentError {
+    constructor(operation: string, kind: "cancelled" | "elapsed", attemptsStarted: number, attempts: readonly AgentError[], cause?: unknown);
+    // (undocumented)
+    readonly attempts: readonly AgentError[];
+    // (undocumented)
+    readonly kind: "cancelled" | "elapsed";
+}
+
 // @public (undocumented)
 export interface RetryContext {
     // (undocumented)
     readonly attempt: number;
     // (undocumented)
     readonly idempotencyKey?: string;
-    // (undocumented)
     readonly signal?: AbortSignal;
 }
 
@@ -1015,11 +1029,15 @@ export interface RetryPolicy {
     readonly baseDelayMs: number;
     readonly idempotencyKey?: string;
     readonly maxAttempts: number;
-    // (undocumented)
     readonly maxDelayMs: number;
+    readonly maxElapsedMs?: number;
     readonly retryIf?: (error: AgentError, attempt: number) => boolean;
     readonly sideEffectSafe?: boolean;
+    readonly signal?: AbortSignal;
 }
+
+// @public (undocumented)
+export type RetrySleep = (ms: number, signal?: AbortSignal) => Promise<void>;
 
 // @public (undocumented)
 export function runEval(options: RunEvalOptions): Promise<EvalReport>;
@@ -1205,10 +1223,10 @@ export interface ToolContext {
 
 // @public (undocumented)
 export interface ToolContract<I, O> {
-    readonly authorize?: (input: I, ctx: ToolContext) => boolean | Promise<boolean>;
+    readonly authorize?: (input: I, ctx: ToolContext, signal?: AbortSignal) => boolean | Promise<boolean>;
     readonly description: string;
     // (undocumented)
-    readonly execute: (input: I, ctx: ToolContext) => Promise<O>;
+    readonly execute: (input: I, ctx: ToolContext, signal?: AbortSignal) => Promise<O>;
     readonly idempotent: boolean;
     // (undocumented)
     readonly input: z.ZodType<I>;
@@ -1422,7 +1440,7 @@ export function verifyPostcondition(description: string, check: () => Promise<tr
 export function withFallback<T>(operation: string, steps: readonly FallbackStep<T>[], onDegrade?: (outcome: Omit<FallbackOutcome<T>, "value">) => void): Promise<FallbackOutcome<T>>;
 
 // @public (undocumented)
-export function withRetry<T>(operation: string, fn: (ctx: RetryContext) => Promise<T>, policy: RetryPolicy, sleep?: (ms: number) => Promise<void>): Promise<RetryOutcome<T>>;
+export function withRetry<T>(operation: string, fn: (ctx: RetryContext) => Promise<T>, policy: RetryPolicy, sleep?: RetrySleep): Promise<RetryOutcome<T>>;
 
 // (No @packageDocumentation comment for this package)
 
