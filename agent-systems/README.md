@@ -78,7 +78,7 @@ Every topic this project set out to cover, and where it lives:
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 210 tests, fully offline (mocked model)
+npm test                  # 297 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -89,9 +89,9 @@ Examples `10`, `11`, and `15` need no API key — start there if you just want t
 
 **The PRAO loop** (`core/loop/prao.ts`): each iteration is one bounded `generateText` call; the result becomes a typed `Observation`; exactly one transition is chosen (`stop-success | iterate | recover | clarify | escalate | stop-failure`); budgets (iterations, elapsed time, tool calls, consecutive failures, identical outputs) are checked in code before acting. Budget exhaustion is a typed error with evidence — never a confident non-answer.
 
-**Tool contracts** (`core/tools/contract.ts`): input schema → authorization (write scopes + domain gate) → bounded execution → output schema → postcondition. A write-scope denial is a `PolicyError` thrown by code; no prompt can talk its way past it.
+**Tool contracts** (`core/tools/contract.ts`): input schema → authorization (write scopes + domain gate) → bounded execution → output schema → postcondition. Authorization and execution receive one composed `AbortSignal`; an upstream cancellation or contract deadline settles even non-cooperative work, cleans up owned timers/listeners, and classifies uncertain writes conservatively. A write-scope denial is a `PolicyError` thrown by code; no prompt can talk its way past it.
 
-**Reliability** (`core/reliability/`): retry only what classification marks transient, with an idempotency key or a declared side-effect safety proof, exponential backoff with full jitter, and a hard attempt budget. Fallback chains label exactly which guarantees each degraded step drops, and fail closed with a `DegradedError` when exhausted.
+**Reliability** (`core/reliability/`): retry only what classification marks transient, with an idempotency key or a declared side-effect safety proof, exponential backoff with full jitter, a hard attempt budget, and an optional monotonic `maxElapsedMs` deadline shared across attempts and backoffs. Upstream cancellation is terminal; `RetryAbortedError` distinguishes it from elapsed-budget exhaustion. Cancellation bounds caller latency but cannot undo an external side effect from non-cooperative work. Fallback chains label exactly which guarantees each degraded step drops, and fail closed with a `DegradedError` when exhausted.
 
 **Orchestration** (`core/orchestration/`): hub-and-spoke is the default; the hub validates every reply envelope before closing a task. Fan-in resolves conflicts by authority, then recency — never by vote. `selectTopology()` encodes the decision rule as data; peer-to-peer is documented and deliberately not implemented (coordination cost rarely justifies it — see SPEC decision D5).
 
@@ -118,9 +118,9 @@ The package is ESM-only, publication-enabled (`private: false`), and released as
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **210/210 green**, no network, no API key. This includes seeded property invariants, mutation-focused safety contracts, and `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **297/297 green**, no network, no API key. This includes seeded property invariants, cancellation/deadline contracts, mutation-focused safety contracts, and `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
 - `npm run test:coverage` — V8 coverage gated at 90% statements, 78% branches, 90% functions, and 90% lines.
-- `npm run test:mutation` — 457 targeted mutants with a 90% minimum mutation score (91.68% at this release).
+- `npm run test:mutation` — 916 targeted mutants with a 90% minimum mutation score (90.72% on this branch).
 - `npm run package:verify` — strict package metadata/type analysis plus a clean consumer install, TypeScript compile, and runtime execution.
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).
