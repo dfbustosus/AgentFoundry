@@ -12,7 +12,7 @@
  * enforcement travels with the tool wherever it is used.
  */
 
-import { tool, type Tool } from "ai";
+import { tool, type Tool, type ToolExecutionOptions } from "ai";
 import type { z } from "zod";
 import { classifyError } from "../errors/classify.js";
 import { PolicyError, ReasoningError, ToolError } from "../errors/taxonomy.js";
@@ -46,7 +46,7 @@ export interface ToolContract<I, O> {
   /** Scope this tool writes to, when sideEffect !== "read-only". Checked against ToolContext. */
   readonly writeScope?: string;
   /** Additional domain-specific authorization, enforced in code. */
-  readonly authorize?: (input: I, ctx: ToolContext) => boolean | Promise<boolean>;
+  readonly authorize?: (input: I, ctx: ToolContext, signal?: AbortSignal) => boolean | Promise<boolean>;
   /**
    * Verifiable condition on (input, output). Return true, or a string
    * explaining the violation. A failed postcondition means the tool reported
@@ -54,32 +54,123 @@ export interface ToolContract<I, O> {
    */
   readonly postcondition?: (input: I, output: O) => true | string;
   readonly timeoutMs?: number;
-  readonly execute: (input: I, ctx: ToolContext) => Promise<O>;
+  readonly execute: (input: I, ctx: ToolContext, signal?: AbortSignal) => Promise<O>;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, name: string): Promise<T> {
+type ContractPhase = "authorization" | "execution";
+
+interface ContractAbortScope {
+  readonly signal: AbortSignal;
+  readonly abortError: () => ToolError;
+  readonly dispose: () => void;
+}
+
+function validateTimeoutMs(timeoutMs: number, name: string): void {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMEOUT_MS) {
+    throw new RangeError(
+      `Tool "${name}" timeoutMs must be finite, positive, and no greater than ${MAX_TIMEOUT_MS}; received ${String(timeoutMs)}.`,
+    );
+  }
+}
+
+function timeoutError<I, O>(contract: ToolContract<I, O>, timeoutMs: number, phase: ContractPhase): ToolError {
+  const beforeExecution = phase === "authorization";
+  const readOnly = contract.sideEffect === "read-only";
+  return new ToolError(
+    `Tool "${contract.name}" ${beforeExecution ? "authorization " : ""}exceeded its ${timeoutMs}ms timeout.`,
+    {
+      retryable: beforeExecution || readOnly || contract.idempotent,
+      sideEffect: beforeExecution || readOnly ? "none" : "unknown",
+      blastRadius: "local",
+      code: "tool.timeout",
+    },
+  );
+}
+
+function abortedError<I, O>(contract: ToolContract<I, O>, phase: ContractPhase, reason?: unknown): ToolError {
+  const writeMayHaveStarted = phase === "execution" && contract.sideEffect !== "read-only";
+  return new ToolError(`Tool "${contract.name}" was aborted by its caller.`, {
+    retryable: false,
+    sideEffect: writeMayHaveStarted ? "unknown" : "none",
+    blastRadius: "local",
+    code: "tool.aborted",
+    cause: reason,
+  });
+}
+
+function createContractAbortScope<I, O>(
+  contract: ToolContract<I, O>,
+  timeoutMs: number,
+  upstreamSignal: AbortSignal | undefined,
+  getPhase: () => ContractPhase,
+): ContractAbortScope {
+  const controller = new AbortController();
+  let classifiedAbort: ToolError | undefined;
+
+  const abortFromUpstream = () => {
+    if (controller.signal.aborted) return;
+    classifiedAbort = abortedError(contract, getPhase(), upstreamSignal?.reason);
+    controller.abort(upstreamSignal?.reason);
+  };
+
+  if (upstreamSignal !== undefined) {
+    upstreamSignal.addEventListener("abort", abortFromUpstream, { once: true });
+    if (upstreamSignal.aborted) abortFromUpstream();
+  }
+
+  const timer = setTimeout(() => {
+    if (controller.signal.aborted) return;
+    classifiedAbort = timeoutError(contract, timeoutMs, getPhase());
+    controller.abort(classifiedAbort);
+  }, timeoutMs);
+
+  return {
+    signal: controller.signal,
+    abortError: () => classifiedAbort ?? abortedError(contract, getPhase(), controller.signal.reason),
+    dispose: () => {
+      clearTimeout(timer);
+      upstreamSignal?.removeEventListener("abort", abortFromUpstream);
+    },
+  };
+}
+
+/**
+ * Settle on abort even when a callback ignores its signal. The rejection
+ * handler remains attached to callback work after abort wins, so a late
+ * rejection is consumed rather than becoming an unhandled rejection.
+ */
+function runAbortable<T>(operation: () => T | PromiseLike<T>, scope: ContractAbortScope): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(
-        new ToolError(`Tool "${name}" exceeded its ${ms}ms timeout.`, {
-          retryable: true,
-          sideEffect: "unknown",
-          blastRadius: "local",
-          code: "tool.timeout",
-        }),
-      );
-    }, ms);
-    promise.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e: unknown) => {
-        clearTimeout(timer);
-        reject(e instanceof Error ? e : new Error(String(e)));
-      },
+    let settled = false;
+
+    const finish = (settle: () => void) => {
+      if (settled) return;
+      settled = true;
+      scope.signal.removeEventListener("abort", onAbort);
+      settle();
+    };
+    const onAbort = () => finish(() => reject(scope.abortError()));
+
+    if (scope.signal.aborted) {
+      onAbort();
+      return;
+    }
+    scope.signal.addEventListener("abort", onAbort, { once: true });
+
+    let work: T | PromiseLike<T>;
+    try {
+      work = operation();
+    } catch (error) {
+      finish(() => reject(error));
+      return;
+    }
+
+    Promise.resolve(work).then(
+      (value) => finish(() => resolve(value)),
+      (error: unknown) => finish(() => reject(error)),
     );
   });
 }
@@ -99,8 +190,9 @@ export interface ContractToolOptions {
 export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: ContractToolOptions): Tool<I, O> {
   const { context } = options;
   const timeoutMs = contract.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  validateTimeoutMs(timeoutMs, contract.name);
 
-  const guarded = async (rawInput: I): Promise<O> => {
+  const guarded = async (rawInput: I, upstreamSignal?: AbortSignal): Promise<O> => {
     const traceId = options.traceId ?? newTraceId();
     const span = {
       trace_id: traceId,
@@ -111,22 +203,31 @@ export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: 
     options.tracer?.emit({ ...span, timestamp: nowIso(), type: "tool.call", tool: contract.name, input: rawInput });
     const started = Date.now();
 
-    // 1. Schema validation at the trust boundary. The AI SDK validates model
-    //    output against inputSchema already; validating again here also covers
-    //    direct programmatic calls that bypass the model.
-    const parsed = contract.input.safeParse(rawInput);
-    if (!parsed.success) {
-      throw new ReasoningError(`Tool "${contract.name}" received invalid input.`, {
-        retryable: false,
-        sideEffect: "none",
-        blastRadius: "local",
-        code: "reasoning.tool_input_invalid",
-        evidence: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
-      });
-    }
-    const input = parsed.data;
+    let abortScope: ContractAbortScope | undefined;
 
     try {
+      if (upstreamSignal?.aborted === true) {
+        throw abortedError(contract, "authorization", upstreamSignal.reason);
+      }
+
+      // 1. Schema validation at the trust boundary. The AI SDK validates model
+      //    output against inputSchema already; validating again here also covers
+      //    direct programmatic calls that bypass the model.
+      const parsed = contract.input.safeParse(rawInput);
+      if (!parsed.success) {
+        throw new ReasoningError(`Tool "${contract.name}" received invalid input.`, {
+          retryable: false,
+          sideEffect: "none",
+          blastRadius: "local",
+          code: "reasoning.tool_input_invalid",
+          evidence: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+        });
+      }
+      const input = parsed.data;
+      let phase: ContractPhase = "authorization";
+      const scope = createContractAbortScope(contract, timeoutMs, upstreamSignal, () => phase);
+      abortScope = scope;
+
       // 2. Authorization, in code. A prompt cannot enforce this.
       if (contract.sideEffect !== "read-only") {
         const scope = contract.writeScope ?? contract.name;
@@ -142,16 +243,21 @@ export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: 
           );
         }
       }
-      if (contract.authorize !== undefined && !(await contract.authorize(input, context))) {
-        throw new PolicyError(`Authorization denied for tool "${contract.name}" by agent "${context.agentId}".`, {
-          sideEffect: "none",
-          blastRadius: "local",
-          code: "policy.domain_authorization_denied",
-        });
+      const authorize = contract.authorize;
+      if (authorize !== undefined) {
+        const authorized = await runAbortable(() => authorize(input, context, scope.signal), scope);
+        if (!authorized) {
+          throw new PolicyError(`Authorization denied for tool "${contract.name}" by agent "${context.agentId}".`, {
+            sideEffect: "none",
+            blastRadius: "local",
+            code: "policy.domain_authorization_denied",
+          });
+        }
       }
 
       // 3. Execute with a hard timeout.
-      const output = await withTimeout(contract.execute(input, context), timeoutMs, contract.name);
+      phase = "execution";
+      const output = await runAbortable(() => contract.execute(input, context, scope.signal), scope);
 
       // 4. Output schema validation: the tool must return what it promised.
       if (contract.output !== undefined) {
@@ -202,6 +308,8 @@ export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: 
         durationMs: Date.now() - started,
       });
       throw error;
+    } finally {
+      abortScope?.dispose();
     }
   };
 
@@ -213,7 +321,8 @@ export function defineContractTool<I, O>(contract: ToolContract<I, O>, options: 
   const defined = tool({
     description: contract.description,
     inputSchema: contract.input as z.ZodType<unknown>,
-    execute: async (input: unknown): Promise<unknown> => guarded(input as I),
+    execute: async (input: unknown, executionOptions: ToolExecutionOptions<unknown>): Promise<unknown> =>
+      guarded(input as I, executionOptions.abortSignal),
   });
   return defined as unknown as Tool<I, O>;
 }
