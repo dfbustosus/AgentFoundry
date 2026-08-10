@@ -244,7 +244,12 @@ describe("bounded retry contracts", () => {
       },
     );
 
-    expect(contexts).toStrictEqual([{ attempt: 1 }, { attempt: 2 }]);
+    expect(contexts).toHaveLength(2);
+    expect(contexts.map((context) => (context as { attempt: number }).attempt)).toStrictEqual([1, 2]);
+    const signals = contexts.map((context) => (context as { signal?: AbortSignal }).signal);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+    expect(signals[1]).toBe(signals[0]);
+    expect(signals[0]?.aborted).toBe(false);
     expect(sleeps).toStrictEqual([5]);
     expect(outcome).toStrictEqual({ value: "ok", attempts: 2, errors: [firstFailure] });
   });
