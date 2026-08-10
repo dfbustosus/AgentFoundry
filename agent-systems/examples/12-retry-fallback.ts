@@ -40,6 +40,7 @@ await main(async () => {
     maxAttempts: 4,
     baseDelayMs: 200,
     maxDelayMs: 2_000,
+    maxElapsedMs: 10_000,
     sideEffectSafe: true,
   });
   console.log(
@@ -57,6 +58,7 @@ await main(async () => {
           maxAttempts: 2, // deliberately too small — the chain must engage
           baseDelayMs: 100,
           maxDelayMs: 500,
+          maxElapsedMs: 2_000,
           sideEffectSafe: true,
         });
         return r.value;
