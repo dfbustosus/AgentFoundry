@@ -35,11 +35,13 @@ export { classifyError, isCategory } from "./core/errors/classify.js";
 // reliability
 export {
   computeDelayMs,
+  RetryAbortedError,
   RetryExhaustedError,
   withRetry,
   type RetryContext,
   type RetryOutcome,
   type RetryPolicy,
+  type RetrySleep,
 } from "./core/reliability/retry.js";
 export { withFallback, type FallbackOutcome, type FallbackStep } from "./core/reliability/fallback.js";
 
@@ -47,6 +49,7 @@ export { withFallback, type FallbackOutcome, type FallbackStep } from "./core/re
 export {
   contractSummary,
   defineContractTool,
+  type ContractToolOptions,
   type SideEffectKind,
   type Tool,
   type ToolContext,
