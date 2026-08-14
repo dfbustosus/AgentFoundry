@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { tool } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
 import { z } from "zod";
 import { PolicyError, ReasoningError, ToolError } from "../src/core/errors/taxonomy.js";
+import { runPraoLoop } from "../src/core/loop/prao.js";
 import { withFallback } from "../src/core/reliability/fallback.js";
 import { RetryExhaustedError, withRetry } from "../src/core/reliability/retry.js";
 import { CheckpointStore, type Checkpoint, reconcile } from "../src/core/state/session.js";
@@ -16,6 +19,15 @@ import {
   schemaLayer,
   verifyPostcondition,
 } from "../src/core/validation/enforcement.js";
+import { failingModel, scriptedModel, textResult, toolCallResult } from "./helpers.js";
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const mutationEchoTool = tool({
+  description: "Echoes input back.",
+  inputSchema: z.object({ text: z.string() }),
+  execute: async ({ text }) => ({ echoed: text }),
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -727,5 +739,501 @@ describe("deterministic enforcement boundaries", () => {
       code: "reasoning.postcondition_failed",
       evidence: ["record missing on independent read"],
     });
+  });
+});
+
+describe("PRAO loop mutation contracts", () => {
+  it("accumulates exact token usage across successes and failed iterations", async () => {
+    let attempt = 0;
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        attempt += 1;
+        if (attempt === 2) throw transient("flaky provider");
+        return textResult(`answer-${attempt}`, attempt === 3 ? "stop" : "tool-calls");
+      },
+    });
+    const result = await runPraoLoop({ model, system: "s", goal: "g" });
+    expect(result.transition).toBe("stop-success");
+    expect(result.iterations).toBe(3);
+    // Two successful generations at 10 input / 5 output each; the failure carries none.
+    expect(result.usage).toEqual({ inputTokens: 20, outputTokens: 10 });
+  });
+
+  it.each([
+    [{ maxIterations: 0 }, "maxIterations must be a safe integer >= 1"],
+    [{ maxElapsedMs: 0 }, "maxElapsedMs must be finite, > 0, and <= 2147483647"],
+    [{ maxToolCalls: 0 }, "maxToolCalls must be a safe integer >= 1"],
+    [{ maxConsecutiveFailures: 0 }, "maxConsecutiveFailures must be a safe integer >= 1"],
+    [{ maxIdenticalOutputs: 0 }, "maxIdenticalOutputs must be a safe integer >= 1"],
+  ])("rejects invalid budget %o with its requirement in the message", async (budgets, requirement) => {
+    const pending = runPraoLoop({ model: scriptedModel([textResult("x")]), system: "s", goal: "g", budgets });
+    await expect(pending).rejects.toThrow(`Invalid PRAO loop budget: ${requirement}.`);
+  });
+
+  it("rejects a zero stepsPerIteration with its requirement in the message", async () => {
+    await expect(
+      runPraoLoop({ model: scriptedModel([textResult("x")]), system: "s", goal: "g", stepsPerIteration: 0 }),
+    ).rejects.toThrow("Invalid PRAO loop budget: stepsPerIteration must be a safe integer >= 1.");
+  });
+
+  it("accepts the boundary value 1 for every integer budget", async () => {
+    const success = await runPraoLoop({
+      model: scriptedModel([textResult("one-shot")]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIterations: 1 },
+    });
+    expect(success.transition).toBe("stop-success");
+    expect(success.iterations).toBe(1);
+
+    const escalation = await runPraoLoop({
+      model: failingModel(() => transient()),
+      system: "s",
+      goal: "g",
+      budgets: { maxConsecutiveFailures: 1 },
+    });
+    expect(escalation.transition).toBe("escalate");
+    expect(escalation.observations).toHaveLength(1);
+
+    const stall = await runPraoLoop({
+      model: scriptedModel([textResult("same", "tool-calls")]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIdenticalOutputs: 1, maxIterations: 10 },
+    });
+    expect(stall.transition).toBe("stop-failure");
+    expect(stall.iterations).toBe(2);
+    expect(stall.reason).toContain("Stall detected");
+  });
+
+  it("returns the exact cancellation error identity", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("unreachable")]),
+      system: "s",
+      goal: "g",
+      signal: AbortSignal.abort("caller stopped"),
+    });
+    expect(result.error).toMatchObject({
+      category: "environment",
+      retryable: false,
+      sideEffect: "none",
+      blastRadius: "workflow",
+      code: "environment.loop_cancelled",
+      cause: "caller stopped",
+    });
+    expect(result.error?.message).toBe("PRAO loop cancelled by its caller.");
+  });
+
+  it("records exact elapsed spending and iteration evidence on deadline exhaustion", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000_000);
+    try {
+      // Each generation consumes 40ms of fake time, so the 100ms deadline
+      // lands mid-third-iteration with two completed iterations of evidence.
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => {
+          await sleep(40);
+          return toolCallResult("echo", { text: "x" });
+        },
+      });
+      const pending = runPraoLoop({
+        model,
+        tools: { echo: mutationEchoTool },
+        system: "s",
+        goal: "g",
+        stepsPerIteration: 1,
+        budgets: { maxElapsedMs: 100, maxIterations: 1_000, maxToolCalls: 1_000 },
+      });
+      await vi.advanceTimersByTimeAsync(500);
+      const result = await pending;
+      expect(result.error?.code).toBe("budget.exhausted");
+      expect(result.error?.message).toBe("Budget exhausted: maxElapsedMs. Spent: 100ms.");
+      // The deadline landed mid-iteration: an in-flight effect is possible.
+      expect(result.error?.sideEffect).toBe("unknown");
+      expect(result.error?.evidence).toEqual([
+        "Model requested further work (finishReason=tool-calls, tools=[echo]).",
+        "Model requested further work (finishReason=tool-calls, tools=[echo]).",
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never feeds empty failure text into stall detection", async () => {
+    const result = await runPraoLoop({
+      model: failingModel(() => transient()),
+      system: "s",
+      goal: "g",
+      budgets: { maxConsecutiveFailures: 5, maxIdenticalOutputs: 1, maxIterations: 10 },
+    });
+    // All five failures produce empty text; escalation, not a stall, ends the loop.
+    expect(result.transition).toBe("escalate");
+    expect(result.observations).toHaveLength(5);
+  });
+
+  it("does not stall while outputs keep changing", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([
+        textResult("first", "tool-calls"),
+        textResult("second", "tool-calls"),
+        textResult("third", "stop"),
+      ]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIdenticalOutputs: 1, maxIterations: 10 },
+    });
+    expect(result.transition).toBe("stop-success");
+    expect(result.iterations).toBe(3);
+  });
+
+  it("tolerates exactly maxIdenticalOutputs repetitions without stalling", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("twice", "tool-calls"), textResult("twice", "tool-calls"), textResult("done")]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIdenticalOutputs: 2, maxIterations: 10 },
+    });
+    expect(result.transition).toBe("stop-success");
+    expect(result.iterations).toBe(3);
+  });
+
+  it("truncates stall evidence to 120 characters of repeated output", async () => {
+    const repeated = "x".repeat(130);
+    const result = await runPraoLoop({
+      model: scriptedModel([
+        textResult(repeated, "tool-calls"),
+        textResult(repeated, "tool-calls"),
+        textResult(repeated, "tool-calls"),
+      ]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIdenticalOutputs: 2, maxIterations: 10 },
+    });
+    expect(result.transition).toBe("stop-failure");
+    expect(result.error?.evidence).toEqual([`Repeated output: ${"x".repeat(120)}`]);
+  });
+
+  it("classifies a length-truncated finish as uncertain and keeps iterating", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("cut off", "length"), textResult("complete")]),
+      system: "s",
+      goal: "g",
+    });
+    expect(result.transition).toBe("stop-success");
+    expect(result.observations[0]).toMatchObject({
+      kind: "uncertain",
+      summary: "Model requested further work (finishReason=length, tools=[]).",
+      finishReason: "length",
+      text: "cut off",
+    });
+    expect(result.observations[1]?.kind).toBe("success");
+  });
+
+  it("records the exact failure observation shape for a classified tool error", async () => {
+    const result = await runPraoLoop({
+      model: failingModel(
+        () =>
+          new ToolError("bad input", {
+            retryable: false,
+            sideEffect: "none",
+            blastRadius: "local",
+            code: "tool.invalid_input",
+          }),
+      ),
+      system: "s",
+      goal: "g",
+    });
+    expect(result.observations[0]).toMatchObject({
+      iteration: 1,
+      kind: "failure",
+      summary: "Iteration failed: [tool.invalid_input] bad input",
+      text: "",
+      toolCalls: [],
+      finishReason: "error",
+    });
+    expect(result.reason).toBe("Non-retryable failure: [tool.invalid_input] bad input");
+  });
+
+  it("enforces the tool-call budget at its exact boundary", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([toolCallResult("echo", { text: "x" })]),
+      tools: { echo: mutationEchoTool },
+      system: "s",
+      goal: "g",
+      stepsPerIteration: 1,
+      budgets: { maxToolCalls: 2, maxIterations: 10 },
+    });
+    expect(result.transition).toBe("stop-failure");
+    expect(result.error?.code).toBe("budget.exhausted");
+    expect(result.error?.message).toBe("Budget exhausted: maxToolCalls. Spent: 2.");
+    // The budget tripped between iterations: nothing was in flight.
+    expect(result.error?.sideEffect).toBe("none");
+    expect(result.error?.evidence).toEqual([]);
+    expect(result.iterations).toBe(2);
+    expect(result.toolCallCount).toBe(2);
+  });
+
+  it("exhausts the iteration budget at its exact boundary and returns the last text", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("working…", "tool-calls")]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIterations: 2, maxToolCalls: 100 },
+    });
+    expect(result.transition).toBe("stop-failure");
+    expect(result.iterations).toBe(2);
+    expect(result.error?.message).toBe("Budget exhausted: maxIterations. Spent: 2.");
+    expect(result.error?.evidence).toEqual([
+      "Model requested further work (finishReason=tool-calls, tools=[]).",
+      "Model requested further work (finishReason=tool-calls, tools=[]).",
+    ]);
+    expect(result.text).toBe("working…");
+  });
+
+  it("escalates with the exact failure count, code, and request payload", async () => {
+    const result = await runPraoLoop({
+      model: failingModel(() => transient()),
+      system: "s",
+      goal: "g",
+      budgets: { maxConsecutiveFailures: 2, maxIterations: 10 },
+    });
+    expect(result.transition).toBe("escalate");
+    expect(result.reason).toBe("2 consecutive failures; last: tool.transient");
+    expect(result.request).toBe("Human or higher-authority agent must reclassify and redirect.");
+    expect(result.error?.code).toBe("tool.transient");
+    expect(result.observations).toHaveLength(2);
+  });
+
+  it("honors an iterate decision without ending the loop", async () => {
+    const seen: number[] = [];
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("not yet", "tool-calls"), textResult("done")]),
+      system: "s",
+      goal: "g",
+      decide: (observation) => {
+        seen.push(observation.iteration);
+        return observation.iteration === 1 ? { transition: "iterate", reason: "more evidence needed" } : undefined;
+      },
+    });
+    expect(result.transition).toBe("stop-success");
+    expect(result.iterations).toBe(2);
+    expect(seen).toEqual([1, 2]);
+  });
+
+  it("stamps the default and custom actor on emitted spans", async () => {
+    const { tracer, events } = collectTracer();
+    await runPraoLoop({ model: scriptedModel([textResult("done")]), system: "s", goal: "g", tracer });
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.map((e) => ("actor" in e ? e.actor : undefined))).toEqual(events.map(() => "prao-loop"));
+
+    const second = collectTracer();
+    await runPraoLoop({
+      model: scriptedModel([textResult("done")]),
+      system: "s",
+      goal: "g",
+      tracer: second.tracer,
+      actor: "triage-agent",
+    });
+    expect(second.events.map((e) => ("actor" in e ? e.actor : undefined))).toEqual(
+      second.events.map(() => "triage-agent"),
+    );
+  });
+
+  it("treats cancellation between iterations as side-effect-free", async () => {
+    const controller = new AbortController();
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("first", "tool-calls"), textResult("never reached")]),
+      system: "s",
+      goal: "g",
+      signal: controller.signal,
+      decide: (observation) => {
+        if (observation.iteration === 1) controller.abort();
+        return undefined;
+      },
+    });
+    expect(result.transition).toBe("stop-failure");
+    expect(result.error?.code).toBe("environment.loop_cancelled");
+    expect(result.error?.sideEffect).toBe("none");
+    expect(result.iterations).toBe(1);
+  });
+
+  it("passes declared tools through to the model call", async () => {
+    let toolCount = -1;
+    const model = new MockLanguageModelV4({
+      doGenerate: async (options) => {
+        toolCount = options.tools?.length ?? 0;
+        return textResult("seen");
+      },
+    });
+    const withTools = await runPraoLoop({
+      model,
+      tools: { echo: mutationEchoTool },
+      system: "s",
+      goal: "g",
+    });
+    expect(withTools.transition).toBe("stop-success");
+    expect(toolCount).toBe(1);
+  });
+
+  it("settles promptly when cancellation lands while the model ignores the signal", async () => {
+    const controller = new AbortController();
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        await sleep(5_000);
+        return textResult("late");
+      },
+    });
+    const started = Date.now();
+    const pending = runPraoLoop({ model, system: "s", goal: "g", signal: controller.signal });
+    setTimeout(() => controller.abort(), 20);
+    const result = await pending;
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(result.error?.code).toBe("environment.loop_cancelled");
+    await sleep(50);
+  });
+
+  it("returns exact success identity: summary, reason, and no absent-key leakage", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("final")]),
+      system: "s",
+      goal: "g",
+    });
+    expect(result.transition).toBe("stop-success");
+    expect(result.reason).toBe("Model completed with a final answer and no pending tool calls.");
+    expect(result.observations[0]?.summary).toBe("Model produced a final answer with no pending tool calls.");
+    expect(result).not.toHaveProperty("request");
+    expect(result).not.toHaveProperty("error");
+    expect(result.text).toBe("final");
+  });
+
+  it("marks invalid-budget rejections as local and side-effect-free", async () => {
+    const pending = runPraoLoop({
+      model: scriptedModel([textResult("x")]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIterations: 0 },
+    });
+    await expect(pending).rejects.toMatchObject({
+      category: "environment",
+      sideEffect: "none",
+      blastRadius: "local",
+    });
+  });
+
+  it("reports the exact loop state to observers on every iteration", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000_000);
+    try {
+      const states: {
+        iteration: number;
+        toolCallCount: number;
+        consecutiveFailures: number;
+        identicalOutputCount: number;
+        elapsedMs: number;
+        observations: number;
+      }[] = [];
+      const result = await runPraoLoop({
+        model: scriptedModel([toolCallResult("echo", { text: "x" }), textResult("done")]),
+        tools: { echo: mutationEchoTool },
+        system: "s",
+        goal: "g",
+        stepsPerIteration: 1,
+        onObservation: (_observation, state) =>
+          states.push({
+            iteration: state.iteration,
+            toolCallCount: state.toolCallCount,
+            consecutiveFailures: state.consecutiveFailures,
+            identicalOutputCount: state.identicalOutputCount,
+            elapsedMs: state.elapsedMs,
+            observations: state.observations.length,
+          }),
+      });
+      expect(result.transition).toBe("stop-success");
+      expect(states).toEqual([
+        {
+          iteration: 1,
+          toolCallCount: 1,
+          consecutiveFailures: 0,
+          identicalOutputCount: 0,
+          elapsedMs: 0,
+          observations: 1,
+        },
+        // Iteration 2 produced the first non-empty text: counter starts at 1.
+        {
+          iteration: 2,
+          toolCallCount: 1,
+          consecutiveFailures: 0,
+          identicalOutputCount: 1,
+          elapsedMs: 0,
+          observations: 2,
+        },
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("carries the tool call list into the iteration trace span", async () => {
+    const { tracer, events } = collectTracer();
+    await runPraoLoop({
+      model: scriptedModel([toolCallResult("echo", { text: "hi" })]),
+      tools: { echo: mutationEchoTool },
+      system: "s",
+      goal: "g",
+      stepsPerIteration: 1,
+      budgets: { maxIterations: 1 },
+      tracer,
+    });
+    const iteration = events.find((e) => e.type === "loop.iteration");
+    expect(iteration).toMatchObject({ type: "loop.iteration", iteration: 1, kind: "partial", toolCalls: ["echo"] });
+  });
+
+  it("never increments the identical-output counter on empty failure text", async () => {
+    const counts: number[] = [];
+    await runPraoLoop({
+      model: failingModel(() => transient()),
+      system: "s",
+      goal: "g",
+      budgets: { maxConsecutiveFailures: 3, maxIdenticalOutputs: 1, maxIterations: 10 },
+      onObservation: (_observation, state) => counts.push(state.identicalOutputCount),
+    });
+    expect(counts).toEqual([0, 0, 0]);
+  });
+
+  it("identifies the exhausted stall budget by name and count", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("looping", "tool-calls")]),
+      system: "s",
+      goal: "g",
+      budgets: { maxIdenticalOutputs: 2, maxIterations: 10 },
+    });
+    expect(result.error?.message).toBe("Budget exhausted: stall detection. Spent: 3 identical outputs.");
+  });
+
+  it("passes the observation text through a custom transition verbatim", async () => {
+    const result = await runPraoLoop({
+      model: scriptedModel([textResult("I need more information.")]),
+      system: "s",
+      goal: "g",
+      decide: (observation) =>
+        observation.text.includes("need more information")
+          ? { transition: "clarify", reason: "Missing high-impact fact.", request: "staging or production?" }
+          : undefined,
+    });
+    expect(result.transition).toBe("clarify");
+    expect(result.reason).toBe("Missing high-impact fact.");
+    expect(result.text).toBe("I need more information.");
+  });
+
+  it("keeps the error property present on failure results", async () => {
+    const result = await runPraoLoop({
+      model: failingModel(() => transient()),
+      system: "s",
+      goal: "g",
+      budgets: { maxConsecutiveFailures: 1 },
+    });
+    expect(result.transition).toBe("escalate");
+    expect(result).toHaveProperty("error");
+    expect(result.error?.code).toBe("tool.transient");
   });
 });
