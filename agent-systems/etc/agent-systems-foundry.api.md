@@ -182,7 +182,9 @@ export interface BranchOutcome<O> {
 
 // @public
 export class BudgetExhaustedError extends AgentError {
-    constructor(budget: string, spent: string, evidence?: readonly string[]);
+    constructor(budget: string, spent: string, evidence?: readonly string[], details?: {
+        readonly sideEffect?: SideEffectStatus;
+    });
 }
 
 // @public
@@ -674,7 +676,6 @@ export function loadEnv(source?: Record<string, string | undefined>): AppEnv;
 // @public (undocumented)
 export interface LoopBudgets {
     readonly maxConsecutiveFailures: number;
-    // (undocumented)
     readonly maxElapsedMs: number;
     readonly maxIdenticalOutputs: number;
     // (undocumented)
@@ -928,6 +929,7 @@ export interface PraoLoopOptions<TOOLS extends ToolSet> {
     readonly model: LanguageModel;
     // (undocumented)
     readonly onObservation?: (observation: Observation, state: LoopState) => void;
+    readonly signal?: AbortSignal;
     readonly stepsPerIteration?: number;
     // (undocumented)
     readonly system: string;
