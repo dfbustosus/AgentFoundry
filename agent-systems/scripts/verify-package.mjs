@@ -104,6 +104,7 @@ try {
   withRetry,
   type ContractToolOptions,
   type LoopTransition,
+  type PraoLoopOptions,
   type RetryPolicy,
   type RetrySleep,
   type Tool,
@@ -155,6 +156,13 @@ if (retried.value !== 7 || retried.attempts !== 1) throw new Error("Packaged ret
 // @ts-expect-error — public union must reject unknown transitions.
 const invalidTransition: LoopTransition = "keep-going";
 void invalidTransition;
+
+// The loop accepts caller cancellation and validated budgets (additive API).
+const loopControls: Pick<PraoLoopOptions<Record<string, Tool>>, "signal" | "budgets"> = {
+  signal: AbortSignal.timeout(5_000),
+  budgets: { maxElapsedMs: 1_000, maxToolCalls: 3 },
+};
+if (!(loopControls.signal instanceof AbortSignal)) throw new Error("Loop signal contract failed");
 
 const graph = new TaskGraph().add({
   id: "answer",
