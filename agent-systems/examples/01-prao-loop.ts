@@ -44,7 +44,11 @@ await main(async () => {
       "You are a concise assistant. Use tools when they ground your answer in fact. " +
       "Answer in one or two sentences.",
     goal: "What's the weather like in Lisbon right now, and should I bring a jacket?",
-    budgets: { maxIterations: 4, maxToolCalls: 5 },
+    // Hard bounds in code: iteration/tool-call budgets plus a wall-clock
+    // deadline that aborts even an in-flight model call, and a caller-owned
+    // cancellation signal.
+    budgets: { maxIterations: 4, maxToolCalls: 5, maxElapsedMs: 30_000 },
+    signal: AbortSignal.timeout(60_000),
     onObservation: (o) => {
       console.log(
         `\n[iteration ${o.iteration}] kind=${o.kind} tools=[${o.toolCalls.join(", ")}] finish=${o.finishReason}`,
