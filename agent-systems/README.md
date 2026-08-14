@@ -78,7 +78,7 @@ Every topic this project set out to cover, and where it lives:
 ```bash
 npm install
 cp .env.example .env      # add your OPENAI_API_KEY
-npm test                  # 297 tests, fully offline (mocked model)
+npm test                  # 352 tests, fully offline (mocked model)
 npm run typecheck
 npm run example -- examples/01-prao-loop.ts
 ```
@@ -87,7 +87,7 @@ Examples `10`, `11`, and `15` need no API key — start there if you just want t
 
 ## Key patterns in one minute
 
-**The PRAO loop** (`core/loop/prao.ts`): each iteration is one bounded `generateText` call; the result becomes a typed `Observation`; exactly one transition is chosen (`stop-success | iterate | recover | clarify | escalate | stop-failure`); budgets (iterations, elapsed time, tool calls, consecutive failures, identical outputs) are checked in code before acting. Budget exhaustion is a typed error with evidence — never a confident non-answer.
+**The PRAO loop** (`core/loop/prao.ts`): each iteration is one bounded `generateText` call; the result becomes a typed `Observation`; exactly one transition is chosen (`stop-success | iterate | recover | clarify | escalate | stop-failure`); budgets (iterations, elapsed time, tool calls, consecutive failures, identical outputs) are validated up front and checked in code. The elapsed budget is a real deadline: one monotonic timer spans the whole run and aborts even an in-flight model call, settling promptly when a provider ignores the signal (late rejections are consumed, never unhandled). Callers may pass their own `AbortSignal`; cancellation is terminal and classified as `environment.loop_cancelled`, distinct from `budget.exhausted` deadline exhaustion. Budget exhaustion is a typed error with evidence — never a confident non-answer.
 
 **Tool contracts** (`core/tools/contract.ts`): input schema → authorization (write scopes + domain gate) → bounded execution → output schema → postcondition. Authorization and execution receive one composed `AbortSignal`; an upstream cancellation or contract deadline settles even non-cooperative work, cleans up owned timers/listeners, and classifies uncertain writes conservatively. A write-scope denial is a `PolicyError` thrown by code; no prompt can talk its way past it.
 
@@ -118,9 +118,9 @@ The package is ESM-only, publication-enabled (`private: false`), and released as
 ## Verification status
 
 - `npm run typecheck` — clean under strict TypeScript, with exact-pinned dependencies.
-- `npm test` — **297/297 green**, no network, no API key. This includes seeded property invariants, cancellation/deadline contracts, mutation-focused safety contracts, and `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
+- `npm test` — **352/352 green**, no network, no API key. This includes seeded property invariants, cancellation/deadline contracts, mutation-focused safety contracts, and `tests/examples-smoke.test.ts`, which executes every offline-capable example end-to-end with `AGENT_SYSTEMS_MOCK=1` (a deterministic mock model that also instantiates JSON schemas for structured-output calls).
 - `npm run test:coverage` — V8 coverage gated at 90% statements, 78% branches, 90% functions, and 90% lines.
-- `npm run test:mutation` — 916 targeted mutants with a 90% minimum mutation score (90.72% on this branch).
+- `npm run test:mutation` — 1,280 targeted mutants (now including the PRAO loop) with a 90% minimum mutation score (91.02% on this branch).
 - `npm run package:verify` — strict package metadata/type analysis plus a clean consumer install, TypeScript compile, and runtime execution.
 - Examples 10, 11, and 15 also run with no key and no mock flag.
 - Example 14 (MCP) is type-checked but not smoke-tested: it spawns an external MCP server via `npx`, which needs network and a directory argument. Run it manually per its header (risk register R4 in `SPEC.md`).

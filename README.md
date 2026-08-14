@@ -48,7 +48,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 │   ├── src/config/                   Application-layer environment validation (Zod)
 │   ├── examples/                     19 runnable examples (topic → example map in its README)
 │   ├── capstone/                     Dogfood app: support-ticket triage agent on the public API
-│   └── tests/                        297 tests, fully offline (mocked model)
+│   └── tests/                        352 tests, fully offline (mocked model)
 ├── .github/
 │   ├── workflows/                    CI package gate + tag-triggered releases
 │   ├── ISSUE_TEMPLATE/               Bug report and feature request templates
@@ -65,7 +65,7 @@ Orchestration, loop control, and reliability are implemented explicitly in this 
 ```bash
 cd agent-systems
 npm install
-npm test                                   # 297 tests, no network or API key
+npm test                                   # 352 tests, no network or API key
 npm run example -- examples/01-prao-loop.ts
 ```
 
@@ -113,7 +113,7 @@ Copy [`agent-systems/.env.example`](./agent-systems/.env.example) to `agent-syst
 
 - `npm run typecheck` — strict TypeScript, exact-pinned dependencies.
 - `npm run lint` — Biome lint + format.
-- `npm test` — **297/297**, no network, no API key; includes deterministic property tests, cancellation/deadline contracts, safety-contract tests, end-to-end example smoke tests, and capstone integration tests.
+- `npm test` — **352/352**, no network, no API key; includes deterministic property tests, cancellation/deadline contracts, safety-contract tests, end-to-end example smoke tests, and capstone integration tests.
 - `npm run test:coverage` — V8 coverage with enforced 90% statements, 78% branches, 90% functions, and 90% lines thresholds.
 - `npm run test:mutation` — targeted mutation testing with a 90% minimum score.
 - `npm run package:verify` — `publint`, AreTheTypesWrong, and a clean consumer-project install/typecheck/runtime gate.
