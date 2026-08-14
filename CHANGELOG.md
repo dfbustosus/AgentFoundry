@@ -15,15 +15,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 - **Cancellation-safe tool contracts**: authorization and execution callbacks receive a composed `AbortSignal`; contract deadlines and upstream cancellation settle non-cooperative work promptly, consume late rejections, clean up timers/listeners, and classify timeout retryability from the tool's side-effect and idempotency declarations.
 - **Elapsed retry budgets**: `RetryPolicy.maxElapsedMs` and upstream `signal` bound attempts and backoffs under one monotonic deadline. `RetryAbortedError` distinguishes elapsed-budget exhaustion from caller cancellation, and every attempt receives the same cooperative signal.
+- **Hard PRAO loop deadlines**: `maxElapsedMs` is now a monotonic deadline enforced before AND during each `generateText` call. The loop aborts in-flight model work at the deadline, settles promptly when a provider ignores the signal, consumes late rejections, and cleans up its timer and listeners on every exit path.
+- **Caller cancellation for loops**: `PraoLoopOptions.signal` composes with the deadline into one `AbortSignal` that reaches every model call (and every tool execution). Cancellation is terminal, ends the loop as `stop-failure` with `environment.loop_cancelled` (distinct from `budget.exhausted` deadline exhaustion), and preserves partial observations, usage, and traces.
+- **Loop budget validation**: malformed budgets (`maxIterations`, `maxElapsedMs`, `maxToolCalls`, `maxConsecutiveFailures`, `maxIdenticalOutputs`, `stepsPerIteration`) fail fast with `environment.invalid_loop_budget` before any model call.
+- **Mutation gate now covers the PRAO loop**: `src/core/loop/prao.ts` joined the Stryker scope; 1,280 mutants at a 91.02% score (90% floor), up from 916 mutants.
 
 ### Changed
 
+- Cancellation landing inside the loop's `decide` policy hook is still terminal: the loop never honors a decision (or a success observation) produced after the caller aborted.
+- `BudgetExhaustedError` accepts an optional `sideEffect` override; loop deadline aborts report `unknown` (the in-flight model call may still complete externally) while between-iteration budgets remain `none`.
 - The retry/fallback example now demonstrates both attempt and elapsed-time budgets. Cancellation bounds caller latency but cannot undo an external side effect from non-cooperative work; timed-out writes therefore retain conservative `unknown` side-effect metadata.
 
 ### Fixed
 
 - Retry exhaustion and cancellation now aggregate side-effect evidence monotonically: any known occurrence remains `occurred`, an uncertain or in-flight attempt remains `unknown`, and cancellation during a fully side-effect-free backoff remains `none`.
 - Retry policies reject `maxDelayMs` values above Node.js's maximum timer delay instead of allowing the runtime to collapse an oversized backoff to 1ms.
+- Example 03 declared `maxToolCalls: 0` on a tool-less run, which exhausted the budget before acting instead of demonstrating a bounded success; the tool budget is now simply omitted there.
 
 ## [0.3.0-rc.2] - 2026-08-08
 
