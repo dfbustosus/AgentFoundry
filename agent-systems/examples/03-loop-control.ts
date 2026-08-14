@@ -23,7 +23,9 @@ await main(async () => {
     model: model(),
     system: "You are concise.",
     goal: "Name three colors.",
-    budgets: { maxIterations: 3, maxElapsedMs: 60_000, maxToolCalls: 0, maxConsecutiveFailures: 2 },
+    // No tools are provided, so no tool-call budget is set; iteration and
+    // elapsed-time bounds still apply.
+    budgets: { maxIterations: 3, maxElapsedMs: 60_000, maxConsecutiveFailures: 2 },
   });
   console.log(`  transition=${ok.transition} iterations=${ok.iterations}`);
   console.log(`  answer: ${ok.text}`);
