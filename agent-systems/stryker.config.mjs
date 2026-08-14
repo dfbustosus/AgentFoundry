@@ -3,6 +3,7 @@
 /** @type {import("@stryker-mutator/api/core").PartialStrykerOptions} */
 const config = {
   mutate: [
+    "src/core/loop/prao.ts",
     "src/core/reliability/fallback.ts",
     "src/core/reliability/retry.ts",
     "src/core/state/session.ts",
