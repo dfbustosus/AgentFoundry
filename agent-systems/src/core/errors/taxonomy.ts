@@ -86,11 +86,18 @@ export class PolicyError extends AgentError {
 
 /** Raised when a loop, retry, or fan-out exhausts a hard budget. Never hidden behind a confident answer. */
 export class BudgetExhaustedError extends AgentError {
-  constructor(budget: string, spent: string, evidence: readonly string[] = []) {
+  constructor(
+    budget: string,
+    spent: string,
+    evidence: readonly string[] = [],
+    details?: { readonly sideEffect?: SideEffectStatus },
+  ) {
     super(`Budget exhausted: ${budget}. Spent: ${spent}.`, {
       category: "reasoning",
       retryable: false,
-      sideEffect: "none",
+      // Callers override when the budget terminated in-flight work whose
+      // external effects cannot be ruled out (e.g. a loop deadline abort).
+      sideEffect: details?.sideEffect ?? "none",
       blastRadius: "workflow",
       code: "budget.exhausted",
       evidence,
