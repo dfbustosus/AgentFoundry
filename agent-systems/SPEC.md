@@ -69,7 +69,7 @@ The project teaches by *showing the machinery*: orchestration, loop control, and
 **Performance/logical constraints**
 
 - P1. Fan-out concurrency must be bounded (default limit, configurable) to respect rate limits and cost budgets.
-- P2. Every loop has iteration and elapsed-time bounds; every retry has a hard attempt bound and supports an explicit monotonic `maxElapsedMs` budget across attempts and backoffs. Reliability-critical examples configure both.
+- P2. Every loop has iteration and elapsed-time bounds; the loop's elapsed bound is a monotonic deadline enforced before AND during model calls, and every loop accepts a caller `AbortSignal`. Every retry has a hard attempt bound and supports an explicit monotonic `maxElapsedMs` budget across attempts and backoffs. Reliability-critical examples configure both.
 - P3. All mutating tool paths must be idempotent or explicitly marked non-idempotent and non-retryable.
 
 ## 4. Prior Decisions (locked)
@@ -110,7 +110,7 @@ Critical path: WS0 → WS1/WS2 → WS3 → WS4 → WS8/WS9 → WS10. WS5–WS7 f
 - V2. `npm test` passes with **no network access and no API key** (mocked model), covering: error classification, retry attempt/elapsed budgets and cancellation, abortable tool deadlines with side-effect-aware metadata, fallback degradation order, loop stop/iterate/escalate transitions, tool postcondition rejection, DAG topological execution with a failing branch, fan-in conflict resolution, handoff envelope round-trip + schema rejection of malformed envelopes, checkpoint save/resume with stale-message detection, enforcement layer blocking an unauthorized action, cost accumulation.
 - V3. Every topic in the user's list maps to at least one example file **and** one core module, verified by the topic map in `README.md`.
 - V4. No file contains placeholder markers; every example has a complete `main()` and runs via `npm run example -- <name>` given a valid key.
-- V5. Each retry/loop/fan-out path demonstrates hard attempt/elapsed/iteration/concurrency bounds and cleanup behavior in code and tests.
+- V5. Each retry/loop/fan-out path demonstrates hard attempt/elapsed/iteration/concurrency bounds and cleanup behavior in code and tests — including loop deadline abort of an in-flight model call, caller cancellation distinct from deadline exhaustion, and budget validation failing fast before any model call.
 
 **Edge cases to test**
 
